@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#181c2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mangathèque">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Mangathèque</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: sticky header with tabs, one-column ledger of rows that expand in place to an editor. */
+:root {
+  --bg: #eceef2;
+  --surface: #f8f9fb;
+  --surface-2: #e2e5ec;
+  --ink: #181c2b;
+  --mute: #5b6379;
+  --line: #cdd2de;
+  --accent: #0d6e7a;
+  --on-accent: #ffffff;
+  --st-dispo: #2b8556;
+  --st-encours: #c4731d;
+  --st-pasdispo: #c0443f;
+  --st-pause: #8a7a22;
+  --st-atrier: #6f50c8;
+  --st-lu: #0d6e7a;
+  --font-display: "Dela Gothic One", "Arial Black", "Helvetica Neue", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141b; --surface: #1b1e28; --surface-2: #262a37; --ink: #e8eaf2; --mute: #9aa1b8;
+    --line: #333849; --accent: #4cc3d0; --on-accent: #0b1317;
+    --st-dispo: #49b57c; --st-encours: #e59a49; --st-pasdispo: #e06b66; --st-pause: #c4b24f; --st-atrier: #a58cf0; --st-lu: #4cc3d0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12141b; --surface: #1b1e28; --surface-2: #262a37; --ink: #e8eaf2; --mute: #9aa1b8;
+  --line: #333849; --accent: #4cc3d0; --on-accent: #0b1317;
+  --st-dispo: #49b57c; --st-encours: #e59a49; --st-pasdispo: #e06b66; --st-pause: #c4b24f; --st-atrier: #a58cf0; --st-lu: #4cc3d0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 860px; margin: 0 auto; }
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  padding-block: 14px 10px; border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+.sync { font-size: .78rem; color: var(--mute); display: inline-flex; align-items: center; gap: 6px; }
+.sync i { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); display: inline-block; }
+.sync.ok i { background: var(--st-dispo); }
+.sync.bad i { background: var(--st-pasdispo); }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-block: 12px 4px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; font: inherit; font-weight: 500; color: var(--ink); background: transparent; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; display: inline-flex; gap: 7px; align-items: center;
+}
+.tab b { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mute); }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab[aria-selected="true"] b { color: var(--bg); opacity: .75; }
+.tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bar { display: flex; gap: 8px; flex-wrap: wrap; padding-block: 12px; }
+.bar input[type=search] { flex: 1 1 200px; min-width: 0; }
+input, select, textarea, button { font: inherit; color: var(--ink); }
+input[type=search], input[type=text], input[type=number], input[type=email], input[type=password], input[type=date], select, textarea {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%;
+}
+.bar select { width: auto; }
+.btn { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+.btn.danger { background: var(--st-pasdispo); color: #fff; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px; display: grid; gap: 10px; }
+.panel h2 { font-size: 1rem; margin: 0; }
+.panel p { margin: 0; color: var(--mute); }
+.row-add { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+@media (max-width: 520px) { .row-add { grid-template-columns: 1fr; } }
+ul.list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+li.item { border-bottom: 1px solid var(--line); }
+.head { width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer; padding: 12px 2px; display: grid; grid-template-columns: 6px 1fr auto; gap: 12px; align-items: center; }
+.head .stripe { align-self: stretch; border-radius: 3px; background: var(--st); min-height: 28px; }
+.title { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.title .star { color: var(--accent); margin-right: 4px; }
+.sub { color: var(--mute); font-size: .82rem; display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.sub .arret { color: var(--ink); }
+.count { text-align: right; font-variant-numeric: tabular-nums; font-size: .85rem; white-space: nowrap; }
+.count small { display: block; color: var(--mute); font-size: .72rem; }
+.meter { height: 4px; border-radius: 2px; background: var(--surface-2); margin-top: 4px; overflow: hidden; width: 84px; margin-left: auto; }
+.meter span { display: block; height: 100%; background: var(--st); }
+.head.hascover { grid-template-columns: 6px 44px 1fr auto; }
+.cover { width: 44px; height: 62px; object-fit: cover; border-radius: 3px; background: var(--surface-2); display: block; }
+li.group { padding: 16px 2px 6px; font-weight: 700; font-size: .85rem; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--line); }
+li.group b { font-variant-numeric: tabular-nums; margin-left: 6px; }
+a.btn { text-decoration: none; display: inline-block; }
+.new { background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 1px 8px; font-size: .7rem; font-weight: 700; margin-left: 6px; white-space: nowrap; }
+.stats { display: grid; gap: 18px; padding-block: 8px; }
+.stats h2 { font-size: .85rem; margin: 0 0 8px; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--mute); font-size: .8rem; }
+.barrow { display: grid; grid-template-columns: minmax(80px, 140px) 1fr 40px; gap: 10px; align-items: center; font-size: .88rem; padding-block: 3px; }
+.barrow > span { overflow-wrap: anywhere; }
+.bartrack { background: var(--surface-2); border-radius: 4px; height: 8px; overflow: hidden; }
+.bartrack i { display: block; height: 100%; background: var(--st, var(--accent)); }
+.barrow b { text-align: right; font-variant-numeric: tabular-nums; }
+.lec { border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 1px 8px; font-size: .7rem; font-weight: 700; margin-left: 6px; white-space: nowrap; }
+.hint { color: var(--mute); font-size: .82rem; margin: 6px 0 0; }
+.pick { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }
+.pick.nocover { grid-template-columns: minmax(0, 1fr); }
+.pick .cover { width: 88px; height: 126px; }
+.pick h3 { margin: 0; font-size: 1.15rem; font-family: var(--font-display); font-weight: 400; overflow-wrap: anywhere; }
+.pick .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.dup { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px; display: grid; gap: 8px; margin-bottom: 8px; }
+.dup .m { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dup .m > span { min-width: 0; overflow-wrap: anywhere; }
+.dup small { color: var(--mute); }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 28px; }
+.mainCol { min-width: 0; }
+.side { order: -1; display: flex; gap: 6px; align-items: center; overflow-x: auto; padding-block: 10px 2px; scrollbar-width: none; }
+.side::-webkit-scrollbar { display: none; }
+.side .lbl { flex: 0 0 auto; color: var(--mute); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
+@media (min-width: 900px) {
+  .wrap { max-width: 1040px; }
+  .layout { grid-template-columns: minmax(0, 1fr) 210px; }
+  .side { order: 0; flex-direction: column; align-items: stretch; overflow: visible; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 130px); align-self: start; padding-top: 14px; }
+  .side .lbl { margin: 0 0 4px 2px; }
+  .side .tab { justify-content: space-between; border-radius: 8px; padding: 8px 12px; }
+}
+@media (max-width: 899px) {
+  header.top { position: static; }
+  .tabs, .side { flex-wrap: wrap; overflow-x: visible; }
+}
+.lusfilter { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding-block: 4px 12px; }
+.lusfilter label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+.lusfilter b { color: var(--mute); font-variant-numeric: tabular-nums; }
+.auth { max-width: 380px; margin: 0 auto; padding-block: 12vh 32px; display: grid; gap: 14px; }
+.auth h1 { margin-bottom: 4px; }
+.auth form { display: grid; gap: 10px; }
+.auth label { display: grid; gap: 4px; font-size: .82rem; color: var(--mute); }
+.auth .tools .btn { flex: 1 1 140px; }
+#authMsg { margin: 0; min-height: 1.4em; color: var(--st-pasdispo); font-size: .88rem; }
+.who { color: var(--mute); font-size: .78rem; overflow-wrap: anywhere; }
+.btn.small { padding: 5px 10px; font-size: .8rem; }
+.filebtn { cursor: pointer; display: inline-block; text-align: center; }
+.editor { padding: 4px 2px 16px 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.editor label { display: grid; gap: 4px; font-size: .78rem; color: var(--mute); min-width: 0; }
+.editor .wide { grid-column: 1 / -1; }
+.readbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.readnow { color: var(--st-lu); font-weight: 700; margin-right: 4px; }
+.editor .checks { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; color: var(--ink); font-size: .9rem; }
+.editor .checks label { display: inline-flex; gap: 8px; align-items: center; color: var(--ink); font-size: .9rem; }
+.editor .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.empty { padding: 36px 8px; text-align: center; color: var(--mute); }
+.note-banner { color: var(--st-pasdispo); font-size: .85rem; padding-block: 8px; }
+footer { color: var(--mute); font-size: .8rem; padding-top: 22px; }
+@media (prefers-reduced-motion: no-preference) { .meter span { transition: width .25s; } }
+</style>
+</head>
+<body>
+
+<div class="auth" id="authBox" hidden>
+  <h1>Mangathèque</h1>
+  <p class="hint">Connecte-toi pour retrouver ta bibliothèque sur tous tes appareils.</p>
+  <form id="authForm">
+    <label for="authEmail">E-mail<input type="email" id="authEmail" autocomplete="email" required></label>
+    <label for="authPass">Mot de passe (6 caractères minimum)<input type="password" id="authPass" autocomplete="current-password" required></label>
+    <div class="tools"><button class="btn" type="submit" id="authIn">Se connecter</button><button class="btn ghost" type="button" id="authSignup">Créer un compte</button></div>
+    <p id="authMsg" role="status"></p>
+  </form>
+</div>
+
+<div class="wrap" hidden>
+  <header class="top">
+    <div class="brand">
+      <h1>Mangathèque</h1>
+      <span class="sync" id="sync" role="status"><i></i><span id="syncTxt">Connexion…</span></span>
+      <span class="who"><span id="who"></span> <button class="btn ghost small" id="logout" type="button">Se déconnecter</button></span>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Catégories"></nav>
+  </header>
+
+  <div class="layout">
+  <div class="mainCol">
+  <div class="bar">
+    <input type="search" id="q" placeholder="Rechercher un manga" aria-label="Rechercher">
+    <select id="sort" aria-label="Trier">
+      <option value="az">A → Z</option>
+      <option value="tomes">Plus de tomes</option>
+      <option value="retard">Reste à lire (dispo)</option>
+      <option value="note">Meilleure note</option>
+      <option value="recent">Lus récemment</option>
+    </select>
+    <select id="genre" aria-label="Genre"><option value="">Tous les genres</option></select>
+    <button class="btn ghost" id="pickBtn" type="button">Au hasard</button>
+    <button class="btn" id="addToggle" type="button">Ajouter</button>
+  </div>
+
+  <div class="lusfilter" id="lusFilter" hidden>
+    <label><input type="checkbox" id="fRated" checked> Notés <b id="nRated"></b></label>
+    <label><input type="checkbox" id="fUnrated" checked> Non notés <b id="nUnrated"></b></label>
+  </div>
+
+  <div id="banner"></div>
+
+  <form class="panel" id="addPanel" hidden>
+    <h2>Nouveau manga</h2>
+    <div class="row-add">
+      <input type="text" id="addName" placeholder="Titre" aria-label="Titre" autocomplete="off">
+      <select id="addStatus" aria-label="Catégorie"></select>
+      <button class="btn" type="submit">Ajouter</button>
+    </div>
+  </form>
+
+  <div id="pickBox" hidden></div>
+  <div id="importBox" hidden></div>
+  <div class="stats" id="statsBox" hidden></div>
+  <datalist id="genreList"><option value="shonen"><option value="seinen"><option value="shojo"><option value="josei"><option value="action"><option value="aventure"><option value="fantasy"><option value="horreur"><option value="thriller"><option value="psychologique"><option value="science-fiction"><option value="sport"><option value="romance"><option value="comédie"><option value="tranche de vie"><option value="historique"><option value="isekai"></datalist>
+  <ul class="list" id="list"></ul>
+  <div class="empty" id="empty" hidden></div>
+  </div>
+  <aside class="side" id="side" aria-label="Ma liste"></aside>
+  </div>
+
+  <footer>
+    Tes données sont enregistrées sur ton compte et synchronisées entre tes appareils.
+  </footer>
+</div>
+
+<script>
+const SEED = [{"id": "m001", "name": "Juujika No Rokunin", "status": "dispo", "tomes": 12, "avail": null, "chap": 230, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, thriller, tragique"}, {"id": "m002", "name": "Be Blues", "status": "dispo", "tomes": 49, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "school-life, sport"}, {"id": "m003", "name": "Banana Fish", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mystère"}, {"id": "m004", "name": "Goblin Slayer – Brand New Day", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantasy"}, {"id": "m005", "name": "Highschool of the dead", "status": "dispo", "tomes": 7, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, ecchi, fantastique, horreur"}, {"id": "m006", "name": "Baki", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m007", "name": "Gantz - Perfect Edition", "status": "dispo", "tomes": 18, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, ecchi, fantastique, horreur, science-fiction"}, {"id": "m008", "name": "Gantz - Osaka", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique, science-fiction"}, {"id": "m009", "name": "Gantz:G", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, ecchi, horreur, mystère, science-fiction, tragique"}, {"id": "m010", "name": "Planetes – Edition Deluxe", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "science-fiction"}, {"id": "m011", "name": "Lanfeust Quest", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantasy"}, {"id": "m012", "name": "Choujin X", "status": "dispo", "tomes": 14, "avail": 9, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, horreur, surnaturel"}, {"id": "m013", "name": "Assassin’s Creed : Dynasty", "status": "dispo", "tomes": 6, "avail": 5, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique"}, {"id": "m014", "name": "Les Légendaires – Les Chroniques de Darkhell", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "m015", "name": "Les Légendaires – Stories", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "m016", "name": "Les Légendaires – Saga", "status": "dispo", "tomes": 9, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "m017", "name": "Le Péché originel de Takopi", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, slice of life, tragique"}, {"id": "m018", "name": "Dorohedoro", "status": "dispo", "tomes": 23, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, horreur, psychologique, surnaturel"}, {"id": "m019", "name": "Elfen Lied", "status": "dispo", "tomes": 12, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, science-fiction, surnaturel"}, {"id": "m020", "name": "Dans l’intimité de Marie", "status": "dispo", "tomes": 9, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mature, mystère, psychologique, romance, surnaturel"}, {"id": "m021", "name": "En proie au silence", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mature, romance, slice of life"}, {"id": "m022", "name": "Riku-do", "status": "dispo", "tomes": 23, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, mature, sport, tragique"}, {"id": "m023", "name": "Dragon Head", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, psychologique"}, {"id": "m024", "name": "Blessures Nocturnes", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, slice of life, tragique"}, {"id": "m025", "name": "The Fable", "status": "dispo", "tomes": 22, "avail": 21, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame"}, {"id": "m026", "name": "Space Brother", "status": "dispo", "tomes": 46, "avail": 42, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, drame, science-fiction, slice of life"}, {"id": "m027", "name": "Gannibal", "status": "dispo", "tomes": 13, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "horreur, mature, mystère, psychologique"}, {"id": "m028", "name": "Blue Giant", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "school-life, slice of life"}, {"id": "m029", "name": "Blue Giant Supreme", "status": "dispo", "tomes": 11, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, slice of life"}, {"id": "m030", "name": "Arsène Lupin", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, historique, mystère"}, {"id": "m031", "name": "La fille de la plage", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, erotique, romance, school-life, slice of life"}, {"id": "m032", "name": "Amour Placebo", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, slice of life"}, {"id": "m033", "name": "Adabana", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mature, mystère, psychologique"}, {"id": "m034", "name": "After school", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "romance, school-life"}, {"id": "m035", "name": "Akame ga kill", "status": "dispo", "tomes": 15, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique, horreur, romance, tragique"}, {"id": "m036", "name": "Akame ga kill Zero", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantastique, horreur"}, {"id": "m037", "name": "Akira", "status": "dispo", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, psychologique, science-fiction"}, {"id": "m038", "name": "All You Need Is Kill", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, mature, mystère, science-fiction, surnaturel"}, {"id": "m039", "name": "Ashita No  Joe", "status": "dispo", "tomes": 13, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, slice of life, sport, tragique"}, {"id": "m040", "name": "Badass Cop & Dolphin", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, mystère, slice of life"}, {"id": "m041", "name": "Beck", "status": "dispo", "tomes": 34, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "slice of life"}, {"id": "m042", "name": "Beelzebub", "status": "dispo", "tomes": 28, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie"}, {"id": "m043", "name": "Black Torch", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, surnaturel"}, {"id": "m044", "name": "Blame", "status": "dispo", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m045", "name": "Bakuon Retto", "status": "dispo", "tomes": 18, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action"}, {"id": "m046", "name": "Blue Exorcist", "status": "dispo", "tomes": 31, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, drame, fantastique, school-life, surnaturel"}, {"id": "m047", "name": "Blue Heaven", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, thriller"}, {"id": "m048", "name": "Rascal Does Not Dream of Bunny Girl Senpai", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, mystère, romance, school-life, surnaturel"}, {"id": "m049", "name": "Chobits", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, romance, science-fiction"}, {"id": "m050", "name": "Cutie Honey", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, ecchi, mature, romance, school-life, science-fiction, surnaturel"}, {"id": "m051", "name": "Doppelgänger", "status": "dispo", "tomes": 4, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, fantastique, mystère, psychologique"}, {"id": "m052", "name": "Priest", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy, horreur, psychologique, surnaturel"}, {"id": "m053", "name": "Gloutons & Dragons", "status": "dispo", "tomes": 14, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantasy"}, {"id": "m054", "name": "Eden’s Zero", "status": "dispo", "tomes": 33, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, fantasy, science-fiction"}, {"id": "m055", "name": "Errance", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, slice of life"}, {"id": "m056", "name": "True Hiiro", "status": "dispo", "tomes": 4, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy, mature, science-fiction, surnaturel, tragique"}, {"id": "m057", "name": "Eyeshield 21", "status": "dispo", "tomes": 37, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, sport"}, {"id": "m058", "name": "Freesia", "status": "dispo", "tomes": 12, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique"}, {"id": "m059", "name": "Fruits Basket", "status": "dispo", "tomes": 12, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, fantasy, romance, school-life"}, {"id": "m060", "name": "Food Wars", "status": "dispo", "tomes": 36, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, ecchi, romance, school-life"}, {"id": "m061", "name": "Sanji’s Food Wars", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, crossover, ecchi"}, {"id": "m062", "name": "Food Wars ! Spécialité du Chef", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, ecchi, romance, school-life"}, {"id": "m063", "name": "Food Wars - L’étoile", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame"}, {"id": "m064", "name": "Gamaran", "status": "dispo", "tomes": 22, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, historique"}, {"id": "m065", "name": "Gintama", "status": "dispo", "tomes": 77, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie"}, {"id": "m066", "name": "Gunnm", "status": "dispo", "tomes": 9, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, science-fiction"}, {"id": "m067", "name": "Gunnm – Last Order", "status": "dispo", "tomes": 12, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, science-fiction"}, {"id": "m068", "name": "Gunnm – Other Stories", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, science-fiction"}, {"id": "m069", "name": "Happiness", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, school-life, surnaturel"}, {"id": "m070", "name": "Hôtel", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy, psychologique, romance, science-fiction, tragique"}, {"id": "m071", "name": "I Love You, So I Kill You", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, mature, romance, school-life, surnaturel"}, {"id": "m072", "name": "Ikigami", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, science-fiction, thriller"}, {"id": "m073", "name": "Initial D", "status": "dispo", "tomes": 48, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, slice of life"}, {"id": "m074", "name": "Inu-Yasha", "status": "dispo", "tomes": 56, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, fantastique, historique, romance"}, {"id": "m075", "name": "Kuroko’s Basket", "status": "dispo", "tomes": 30, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "slice of life, sport"}, {"id": "m076", "name": "Kuroko’s Basket – Extra Game", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, school-life, sport"}, {"id": "m077", "name": "Kuroko’s Basket – Replace Plus", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, school-life, sport"}, {"id": "m078", "name": "L’Attaque des Titans – Before the Fall", "status": "dispo", "tomes": 17, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, horreur, mature, mystère, surnaturel"}, {"id": "m079", "name": "L’Attaque des Titans – Birth of Livaï", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, horreur, mature, surnaturel, tragique"}, {"id": "m080", "name": "L’Attaque des Titans – Lost Girls", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, horreur, mature, mystère, tragique"}, {"id": "m081", "name": "Le Comte de Monte Cristo", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, mystère"}, {"id": "m082", "name": "L’Ère des Cristaux", "status": "dispo", "tomes": 13, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy"}, {"id": "m083", "name": "Les fleurs du Mal", "status": "dispo", "tomes": 11, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, psychologique, romance, school-life"}, {"id": "m084", "name": "Le Sommet des dieux", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, slice of life"}, {"id": "m085", "name": "Mirai Nikki", "status": "dispo", "tomes": 12, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, fantastique, horreur, psychologique, romance"}, {"id": "m086", "name": "Mirai Nikki – Paradox", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, fantastique, horreur, psychologique, romance"}, {"id": "m087", "name": "Moi, quand je me réincarne en slime – Comment vivre chez les monstres", "status": "dispo", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, fantasy, slice of life"}, {"id": "m088", "name": "Neun", "status": "dispo", "tomes": 6.5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, historique"}, {"id": "m089", "name": "Ningen Shikkaku (Junji Ito)", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m090", "name": "Noragami", "status": "dispo", "tomes": 27, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantastique, romance, surnaturel"}, {"id": "m091", "name": "Nuisible", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "horreur, mature, psychologique, romance"}, {"id": "m092", "name": "Orange", "status": "dispo", "tomes": 7, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, romance, school-life, science-fiction, slice of life, surnaturel, tragique"}, {"id": "m093", "name": "Partners 2.0", "status": "dispo", "tomes": 9, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, erotique, slice of life"}, {"id": "m094", "name": "Phantom Seer", "status": "dispo", "tomes": 4, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, horreur, mystère, surnaturel"}, {"id": "m095", "name": "Ping Pong", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, psychologique, slice of life, sport"}, {"id": "m096", "name": "Poison City", "status": "dispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique"}, {"id": "m097", "name": "Psycho-Pass – Inspecteur Akane Tsunemori", "status": "dispo", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mystère, psychologique, science-fiction, thriller"}, {"id": "m098", "name": "Psycho-Pass – Inspecteur Shinya Kôgami", "status": "dispo", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, psychologique, science-fiction"}, {"id": "m099", "name": "Psycho-Pass – Saison 2", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mystère, psychologique, science-fiction, thriller"}, {"id": "m100", "name": "Reborn!", "status": "dispo", "tomes": 42, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, school-life"}, {"id": "m101", "name": "Sailor Moon – Eternal Edition", "status": "dispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, drame, fantastique, romance"}, {"id": "m102", "name": "Shigahime", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "ecchi, horreur, psychologique, romance, surnaturel"}, {"id": "m103", "name": "Soul Eater NOT!", "status": "dispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, fantastique, slice of life"}, {"id": "m104", "name": "Soul Keeper", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, surnaturel, tragique"}, {"id": "m105", "name": "Talli, fille de la Lune", "status": "dispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique, historique"}, {"id": "m106", "name": "Crows", "status": "dispo", "tomes": 26, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, school-life"}, {"id": "m107", "name": "Crows Zero 2", "status": "dispo", "tomes": 11, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, school-life"}, {"id": "m108", "name": "Yū Yū Hakusho", "status": "dispo", "tomes": 19, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique, horreur, nekketsu"}, {"id": "m109", "name": "Darling in the Franxx", "status": "dispo", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, ecchi, romance, science-fiction"}, {"id": "m110", "name": "Zombie Powder", "status": "dispo", "tomes": 4, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, science-fiction"}, {"id": "m111", "name": "Death Note – Tokubetsu Yomikiri", "status": "dispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, psychologique, surnaturel, tragique"}, {"id": "m112", "name": "Please Put Them On, Takamine-San", "status": "encours", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m113", "name": "L’Atelier des Sorciers", "status": "encours", "tomes": 14, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "fantastique, slice of life"}, {"id": "m114", "name": "Centuria", "status": "encours", "tomes": 7, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy, surnaturel"}, {"id": "m115", "name": "Redo Of Healer", "status": "encours", "tomes": 17, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m116", "name": "Jujutsu kaisen modulo", "status": "encours", "tomes": null, "avail": null, "chap": 19, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, mystère, nekketsu, science-fiction"}, {"id": "m117", "name": "Goblin Slayer - Year One", "status": "encours", "tomes": 13, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, ecchi, fantasy, horreur, mature"}, {"id": "m118", "name": "Goblin Slayer", "status": "encours", "tomes": 16, "avail": 9, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, drame, ecchi, fantastique, fantasy, mature, mystère"}, {"id": "m119", "name": "Wakfu - La Grande Vague", "status": "encours", "tomes": 3, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantasy"}, {"id": "m120", "name": "Kagurabachi", "status": "encours", "tomes": null, "avail": null, "chap": 108, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame"}, {"id": "m121", "name": "Demon Slave", "status": "encours", "tomes": 19, "avail": 17, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, ecchi, fantasy, romance"}, {"id": "m122", "name": "Gantz:E", "status": "encours", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, historique"}, {"id": "m123", "name": "Versus", "status": "encours", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy"}, {"id": "m124", "name": "#DRCL midnight children", "status": "encours", "tomes": 6, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, fantastique, horreur, surnaturel"}, {"id": "m125", "name": "Ichi the witch", "status": "encours", "tomes": 6, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantasy"}, {"id": "m126", "name": "Kingdom", "status": "encours", "tomes": null, "avail": null, "chap": 863, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, historique"}, {"id": "m127", "name": "Tenkaichi", "status": "encours", "tomes": 12, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m128", "name": "Les Légendaires – Resistance", "status": "encours", "tomes": 4, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "m129", "name": "OverLord", "status": "encours", "tomes": 19, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m130", "name": "Les Affamés", "status": "encours", "tomes": 5, "avail": 3, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, horreur, psychologique, surnaturel, tragique"}, {"id": "m131", "name": "Gachiakuta", "status": "encours", "tomes": null, "avail": null, "chap": 155, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy, mystère, tragique"}, {"id": "m132", "name": "The Fable : Second Contact", "status": "encours", "tomes": 9, "avail": null, "chap": 57, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame"}, {"id": "m133", "name": "Spy no tsuma", "status": "encours", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m134", "name": "Blue Giant Explorer", "status": "encours", "tomes": 9, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "slice of life"}, {"id": "m135", "name": "Akane Banashi", "status": "encours", "tomes": 20, "avail": 9, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, slice of life"}, {"id": "m136", "name": "The Heroic Legend of Arslân", "status": "encours", "tomes": 20, "avail": 17, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantasy, historique, surnaturel"}, {"id": "m137", "name": "Asadora", "status": "encours", "tomes": 13, "avail": 7, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, historique, slice of life"}, {"id": "m138", "name": "Beast Complex", "status": "encours", "tomes": 6, "avail": 3, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, histoires courtes, mature, psychologique, romance, slice of life"}, {"id": "m139", "name": "Black-Box", "status": "encours", "tomes": 6, "avail": 4, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, sport"}, {"id": "m140", "name": "Black butler", "status": "encours", "tomes": 34, "avail": 32, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, surnaturel"}, {"id": "m141", "name": "Blue exorcist", "status": "encours", "tomes": 31, "avail": null, "chap": null, "note": "peut-être fini", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, drame, fantastique, school-life, surnaturel"}, {"id": "m142", "name": "Blue Period", "status": "encours", "tomes": 15, "avail": 13, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, school-life, slice of life"}, {"id": "m143", "name": "Bucket list of the dead", "status": "encours", "tomes": 17, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, science-fiction"}, {"id": "m144", "name": "Chiruran", "status": "encours", "tomes": 36, "avail": 22, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, historique"}, {"id": "m145", "name": "Choujin x", "status": "encours", "tomes": 9, "avail": 7, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, horreur, surnaturel"}, {"id": "m146", "name": "D.Gray-Man", "status": "encours", "tomes": 28, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, horreur, surnaturel"}, {"id": "m147", "name": "Dai Dark", "status": "encours", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, science-fiction, surnaturel"}, {"id": "m148", "name": "Darwin’s Incident", "status": "encours", "tomes": 7, "avail": 5, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, science-fiction"}, {"id": "m149", "name": "Darwin’s Game", "status": "encours", "tomes": 30, "avail": 27, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, mystère, science-fiction, thriller, tournois"}, {"id": "m150", "name": "Dead Rock", "status": "encours", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, fantasy"}, {"id": "m151", "name": "Dead Tube", "status": "encours", "tomes": 22, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, mature, mystère, psychologique, school-life"}, {"id": "m152", "name": "Drifters", "status": "encours", "tomes": 7, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantasy, historique, mature"}, {"id": "m153", "name": "Fairy tail La quête de cents ans", "status": "encours", "tomes": 20, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m154", "name": "Friends games", "status": "encours", "tomes": 21, "avail": 20, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, psychologique"}, {"id": "m155", "name": "Frieren", "status": "encours", "tomes": 15, "avail": 14, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, drame, fantasy, slice of life"}, {"id": "m156", "name": "Fool night", "status": "encours", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, psychologique, science-fiction, thriller, tragique"}, {"id": "m157", "name": "Gigant", "status": "encours", "tomes": 10, "avail": 5, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, horreur, science-fiction, tragique"}, {"id": "m158", "name": "Golglo 13", "status": "encours", "tomes": 13, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m159", "name": "Grand blue", "status": "encours", "tomes": 22, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, ecchi, school-life, slice of life"}, {"id": "m160", "name": "Gunnm – Mars Chronicle", "status": "encours", "tomes": 9, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, psychologique, science-fiction"}, {"id": "m161", "name": "Hajime no ippo", "status": "encours", "tomes": 140, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, sport"}, {"id": "m162", "name": "Iruma à l’école des démons", "status": "encours", "tomes": 34, "avail": 28, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, fantastique, school-life, surnaturel"}, {"id": "m163", "name": "Kaguya Sama Love Is War", "status": "encours", "tomes": 28, "avail": 25, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, romance, school-life"}, {"id": "m164", "name": "Kotaro en Solo", "status": "encours", "tomes": 10, "avail": 3, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, slice of life"}, {"id": "m165", "name": "Les Carnets de l'Apothicaire", "status": "encours", "tomes": 15, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, historique, mystère, slice of life"}, {"id": "m166", "name": "Les liens du sang", "status": "encours", "tomes": 17, "avail": 5, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "psychologique, slice of life"}, {"id": "m167", "name": "Magus of the library", "status": "encours", "tomes": 8, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantasy"}, {"id": "m168", "name": "Mirai Nikki – Mosaic", "status": "encours", "tomes": 3, "avail": 1, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, fantastique, psychologique, romance, surnaturel"}, {"id": "m169", "name": "Mission: Yozakura Family", "status": "encours", "tomes": 23, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, romance"}, {"id": "m170", "name": "Moi quand je me réincarne en slime", "status": "encours", "tomes": 27, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, drame, fantasy"}, {"id": "m171", "name": "Moi, quand je me réincarne en slime – Trinité", "status": "encours", "tomes": 7, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantasy"}, {"id": "m172", "name": "Sexy Cosplay Doll", "status": "encours", "tomes": 12, "avail": 9, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, ecchi, romance, school-life, slice of life"}, {"id": "m173", "name": "My Home Hero", "status": "encours", "tomes": 25, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mature, thriller"}, {"id": "m174", "name": "Nine Peaks", "status": "encours", "tomes": 8, "avail": 3, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame"}, {"id": "m175", "name": "Orient", "status": "encours", "tomes": 21, "avail": 19, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique, historique, nekketsu"}, {"id": "m176", "name": "Pumpkin Night", "status": "encours", "tomes": 8, "avail": 5, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, mature, mystère, psychologique, school-life, thriller, tragique"}, {"id": "m177", "name": "Ripper", "status": "encours", "tomes": 3, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantastique, surnaturel"}, {"id": "m178", "name": "Ruridragon", "status": "encours", "tomes": null, "avail": null, "chap": 44, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, fantastique, fantasy, school-life, slice of life"}, {"id": "m179", "name": "To the Abandoned Sacred Beasts", "status": "encours", "tomes": 15, "avail": 13, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantasy"}, {"id": "m180", "name": "Seraph of the End", "status": "encours", "tomes": 32, "avail": 23, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, mystère, science-fiction"}, {"id": "m181", "name": "Space punch", "status": "encours", "tomes": 5, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, fantastique"}, {"id": "m182", "name": "The Killer Inside", "status": "encours", "tomes": 11, "avail": 2, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, erotique, horreur, mystère, psychologique"}, {"id": "m183", "name": "To Your Eternity", "status": "encours", "tomes": 24, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, drame, fantasy, mature, mystère"}, {"id": "m184", "name": "Tôgen Anki – La légende du sang maudit", "status": "encours", "tomes": 18, "avail": 10, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, mystère, surnaturel"}, {"id": "m185", "name": "Witches war", "status": "encours", "tomes": 4, "avail": 1, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action"}, {"id": "m186", "name": "Kaamelott", "status": "encours", "tomes": 12, "avail": 10, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, fantastique, fantasy"}, {"id": "m187", "name": "Angel doll", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m188", "name": "Ushio To Tora", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m189", "name": "L'Enfant et le Maudit (The Girl From the Other Side: Siúil, a Rún)", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m190", "name": "Your Lie In April", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m191", "name": "Inu To Kuzu", "status": "pasdispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m192", "name": "Usogui", "status": "pasdispo", "tomes": 49, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m193", "name": "Last Hero Inuyashiki", "status": "pasdispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m194", "name": "I\"s", "status": "pasdispo", "tomes": 15, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m195", "name": "Nazca", "status": "pasdispo", "tomes": 2, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m196", "name": "Hellsing", "status": "pasdispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m197", "name": "Anthologie Macabre", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m198", "name": "Okko", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m199", "name": "Neo dutch wife", "status": "pasdispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m200", "name": "Shonan seven", "status": "pasdispo", "tomes": 17, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m201", "name": "Hades Chasseur de Psycho-Demon", "status": "pasdispo", "tomes": 10, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m202", "name": "Batuque", "status": "pasdispo", "tomes": 18, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m203", "name": "Himizo", "status": "pasdispo", "tomes": 4, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m204", "name": "The Fable: The Third Secret", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m205", "name": "Vers l’ouest", "status": "pasdispo", "tomes": 30, "avail": 7, "chap": null, "note": "abandonné en France", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m206", "name": "Rain man", "status": "pasdispo", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m207", "name": "Kansen Retto", "status": "pasdispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m208", "name": "Racaille Blues", "status": "pasdispo", "tomes": 42, "avail": 5, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m209", "name": "The Tree of Death", "status": "pasdispo", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m210", "name": "Perfect blue", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m211", "name": "Paprika", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m212", "name": "Lupin the 3rd", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m213", "name": "Colette : mémoire d’une maison close", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m214", "name": "Fends le vent", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m215", "name": "91 days", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m216", "name": "A distant neighborhood", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m217", "name": "Alien area", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m218", "name": "Alice in bordeland", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m219", "name": "Alma", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m220", "name": "Area-D", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m221", "name": "Blade of the immortal", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m222", "name": "Bride stories", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m223", "name": "Chainsaw Man – Buddy Stories", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m224", "name": "Burn the Witch", "status": "pasdispo", "tomes": 1, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m225", "name": "CastleVania", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m226", "name": "Code Geass", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m227", "name": "Death parade", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m228", "name": "Devilman Crybaby", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m229", "name": "Doron Dororon", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m230", "name": "Double", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m231", "name": "Ex-arm feel in love", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m232", "name": "Glycérie", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m233", "name": "Hirayasumi", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m234", "name": "Just Listen to the Song / Futsū ni Kīte Kuru de Fujimoto", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m235", "name": "Kiss x Death", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m236", "name": "La mort rode dans les ténèbres", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m237", "name": "L’étranger d’Albert Camus en manga", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m238", "name": "L'Habitant de l'infini", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m239", "name": "L'homme qui a tué nobunaga", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m240", "name": "Lone Wolf and Cub", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m241", "name": "Made in Abyss", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m242", "name": "Mars", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m243", "name": "Me & Roboco", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m244", "name": "Mind game", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m245", "name": "Occult detective club", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m246", "name": "On the movements of the earth", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m247", "name": "Pygmalio", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m248", "name": "Save Me Pythie", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m249", "name": "Ranking of Kings", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m250", "name": "Rando", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m251", "name": "Reincarnation Coliseum", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m252", "name": "ReLife", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m253", "name": "Rookies (style GTO)", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m254", "name": "Saiki Kusuo no Ψ nan", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m255", "name": "Samurai Champloo", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m256", "name": "Samouraï errant", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m257", "name": "Shen Ze", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m258", "name": "Shigurui", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m259", "name": "Shikaku", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m260", "name": "Space Chef Caisar", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m261", "name": "Steins;Gate", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m262", "name": "The Alpine Climber", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m263", "name": "The Breaker", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m264", "name": "The Hanging Balloons (Junji Ito)", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m265", "name": "Three days of happiness", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m266", "name": "Tomadachi game", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m267", "name": "Worst", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m268", "name": "You like me not my daughter", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m269", "name": "The Man Who Saved Me on My Isekai Trip Was a Killer", "status": "pasdispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m270", "name": "Black laggoon", "status": "pause", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m271", "name": "Ultra Heaven", "status": "pause", "tomes": 3, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m272", "name": "Kiruru KILL ME", "status": "pause", "tomes": 5, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, ecchi, romance"}, {"id": "m273", "name": "Bastard", "status": "pause", "tomes": 27, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, ecchi, erotique, fantastique, surnaturel"}, {"id": "m274", "name": "Coq de combat", "status": "pause", "tomes": 34, "avail": null, "chap": null, "note": "Arrêté", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mature, psychologique, tragique"}, {"id": "m275", "name": "Gon", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m276", "name": "Cat eyes avant City Hunter", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m277", "name": "Angel heart (même auteur que City Hunter suite)", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie"}, {"id": "m278", "name": "Avatar le dernier maître de l’air comics", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m279", "name": "100 mètres", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m280", "name": "Tomié", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m281", "name": "Gyo", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "fantastique, horreur"}, {"id": "m282", "name": "X gene", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m283", "name": "Les misérables de 2013", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m284", "name": "Ace par Boichi", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m285", "name": "Jojo", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m286", "name": "Metamorphisis", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m287", "name": "Crows", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, school-life"}, {"id": "m288", "name": "Bakuon retto", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action"}, {"id": "m289", "name": "MPD Psycho", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "surnaturel"}, {"id": "m290", "name": "Ichi The Killer", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m291", "name": "Clover", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantasy, nekketsu, surnaturel"}, {"id": "m292", "name": "Hirayasumi", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m293", "name": "Girl’s last tour", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, slice of life"}, {"id": "m294", "name": "The wizard and the red pilgrim", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m295", "name": "Emanon", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mature, slice of life, surnaturel"}, {"id": "m296", "name": "Magus of the library", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantasy"}, {"id": "m297", "name": "Drifting Dragons", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantasy"}, {"id": "m298", "name": "Veil", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "histoires courtes, romance, slice of life"}, {"id": "m299", "name": "Otoyomegatari", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m300", "name": "Sidooh", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, historique"}, {"id": "m301", "name": "Under prison", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m302", "name": "Au bain les yankees", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m303", "name": "Oni Goroshi", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m304", "name": "Blue Wolves", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, historique, slice of life"}, {"id": "m305", "name": "Tokyo duel", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "m306", "name": "Fool Night", "status": "atrier", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, psychologique, science-fiction, thriller, tragique"}, {"id": "l001", "name": "I Am A Hero", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, horreur, thriller"}, {"id": "l002", "name": "Black Clover", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantasy, nekketsu, surnaturel"}, {"id": "l003", "name": "Le Prix du reste de ma vie", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, romance"}, {"id": "l004", "name": "The Boys : Hors-Série", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l005", "name": "The Boys", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, mature"}, {"id": "l006", "name": "Seven Deadly Sins : Seven Days", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, fantastique, romance"}, {"id": "l007", "name": "Seven Deadly Sins : Origin Sin", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantastique, romance"}, {"id": "l008", "name": "Les enfants loups Ame & Yuki", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, fantasy, romance, slice of life"}, {"id": "l009", "name": "City Hunter", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, ecchi, romance"}, {"id": "l010", "name": "Assassins", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame"}, {"id": "l011", "name": "Cruler Than Dead", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l012", "name": "Rash!!", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l013", "name": "Loin de toi près de moi", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, fantastique, romance, school-life, slice of life, surnaturel"}, {"id": "l014", "name": "Prophecy", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mystère"}, {"id": "l015", "name": "Wakfu", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique"}, {"id": "l016", "name": "Wakfu - Les Kamas de la Soif", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "l017", "name": "Wakfu – Shak Shaka", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure"}, {"id": "l018", "name": "Wakfu Heroes – Justice", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique"}, {"id": "l019", "name": "Wakfu Heroes – Le Corbeau noir", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique"}, {"id": "l020", "name": "Wakfu Heroes – Percimol", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique"}, {"id": "l021", "name": "Time shadows", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, romance, surnaturel"}, {"id": "l022", "name": "Homunculus", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, psychologique, surnaturel"}, {"id": "l023", "name": "Monster", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "slice of life, surnaturel"}, {"id": "l024", "name": "Je veux manger ton pancréas", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, school-life, slice of life"}, {"id": "l025", "name": "Walking Dead", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, fantastique, horreur, science-fiction"}, {"id": "l026", "name": "Battle Royale", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, erotique, psychologique, school-life"}, {"id": "l027", "name": "Nana", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, mature, romance, slice of life"}, {"id": "l028", "name": "Secret Innocent World", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, romance"}, {"id": "l029", "name": "Innocent Rouge", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, historique, mature, psychologique, tragique"}, {"id": "l030", "name": "Innocent", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, historique, mature, psychologique, tragique"}, {"id": "l031", "name": "Cowboy Bepop", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l032", "name": "Horizon", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, romance, slice of life"}, {"id": "l033", "name": "Origin", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, ecchi, science-fiction"}, {"id": "l034", "name": "Dr.Stone Reboot:Byakuya", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l035", "name": "Velvet Kiss", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, ecchi, erotique, romance"}, {"id": "l036", "name": "Une Sacrée Mamie", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "biographique, comédie, slice of life"}, {"id": "l037", "name": "Zetman", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, erotique, fantastique, horreur"}, {"id": "l038", "name": "L’école Décomposée de Junji Ito", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l039", "name": "Le Légendaires Origins", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l040", "name": "Les Légendaires", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "l041", "name": "Cixi de Troy", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, fantastique, fantasy"}, {"id": "l042", "name": "Lanfeust Odyssey", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "l043", "name": "Lanfeust des Étoiles", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy, science-fiction"}, {"id": "l044", "name": "Lanfeust de Troy", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, fantasy"}, {"id": "l045", "name": "Naruto Gaiden – la spirale au cœur du tourbillon", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, histoires courtes, nekketsu"}, {"id": "l046", "name": "Hentai Kamen, The Abnormal Super Hero", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, ecchi, school-life"}, {"id": "l047", "name": "Uzumaki (Spirale) Junji Ito", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l048", "name": "Vinland Saga", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, historique"}, {"id": "l049", "name": "Kaiju No. 8", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l050", "name": "GTO 14 days in Shonan", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l051", "name": "GTO Bad Company", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, school-life"}, {"id": "l052", "name": "Young GTO", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, school-life"}, {"id": "l053", "name": "Schwarz Ragnarok", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy"}, {"id": "l054", "name": "Mashle", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantastique"}, {"id": "l055", "name": "Green Blood", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, historique"}, {"id": "l056", "name": "Bestiarius", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantasy, historique, mature, tragique"}, {"id": "l057", "name": "Rainbow", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, historique, psychologique, slice of life, thriller"}, {"id": "l058", "name": "Billy Bat", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, historique, mystère, psychologique"}, {"id": "l059", "name": "Nami vs Khalifa Boichi", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l060", "name": "A Silent Voice", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, psychologique, romance, school-life, slice of life"}, {"id": "l061", "name": "Parasite Reversi", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, horreur, mystère, psychologique, science-fiction, tragique"}, {"id": "l062", "name": "Neo Parasite", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, histoires courtes, horreur, science-fiction"}, {"id": "l063", "name": "Parasite", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, horreur, science-fiction"}, {"id": "l064", "name": "Dororo", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique, historique"}, {"id": "l065", "name": "21th Century Boys", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l066", "name": "20th Century Boys", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mystère, surnaturel, thriller"}, {"id": "l067", "name": "Old Boy", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, psychologique"}, {"id": "l068", "name": "Neon Genesis Evangelion", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, mystère, psychologique, science-fiction, tragique"}, {"id": "l069", "name": "Samouraï 8", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l070", "name": "Lou Sonata", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, slice of life"}, {"id": "l071", "name": "Lou", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l072", "name": "Assassination Classroom", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, school-life, science-fiction"}, {"id": "l073", "name": "Erased", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mature, mystère, psychologique, romance, slice of life, surnaturel, tragique"}, {"id": "l074", "name": "Jujutsu Kaisen", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantastique, mystère, school-life, surnaturel, tragique"}, {"id": "l075", "name": "Beastars", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, mature, psychologique, romance, school-life, slice of life"}, {"id": "l076", "name": "Fire Force", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, science-fiction, surnaturel"}, {"id": "l077", "name": "Pluto", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "science-fiction"}, {"id": "l078", "name": "Adieu Eri de Tatsuki Fujimoto", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l079", "name": "My Hero Academia", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, school-life, surnaturel"}, {"id": "l080", "name": "Meteor Strike (auteur kenshin vagabond)", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l081", "name": "Kenshin Le Vagabond", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, historique, romance"}, {"id": "l082", "name": "22-26", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, histoires courtes, romance, school-life"}, {"id": "l083", "name": "17-21", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, histoires courtes, romance"}, {"id": "l084", "name": "Look Back", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, school-life, slice of life"}, {"id": "l085", "name": "Mob Psycho 100", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, psychologique, romance, surnaturel"}, {"id": "l086", "name": "Dr.Stone", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l087", "name": "Baki Son Of The Ogre", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l088", "name": "One Shot Kurapika", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l089", "name": "One Shot Hisoka - Sui Ishida", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l090", "name": "Tokyo Revengers", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, romance, school-life"}, {"id": "l091", "name": "The Promised Neverland", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, drame, horreur, mystère, surnaturel"}, {"id": "l092", "name": "GTO", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l093", "name": "Soul Eater", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantastique"}, {"id": "l094", "name": "Bonne nuit Punpun", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, slice of life"}, {"id": "l095", "name": "Ajin", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, horreur, mature, mystère, surnaturel"}, {"id": "l096", "name": "Tokyo Ghoul RE", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, horreur, mature, mystère, psychologique, surnaturel"}, {"id": "l097", "name": "Tokyo Ghoul", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, horreur, mature, mystère, psychologique, surnaturel"}, {"id": "l098", "name": "Hell's Paradise", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, fantastique, historique, surnaturel"}, {"id": "l099", "name": "Fire Punch", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, mature, mystère, surnaturel, tragique"}, {"id": "l100", "name": "Fullmetal Alchemist", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, mystère, surnaturel"}, {"id": "l101", "name": "Jagaaaaan", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l102", "name": "Ascension", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, sport"}, {"id": "l103", "name": "Shingeki no Kyojin", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l104", "name": "Seven Deadly Sins", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantastique, romance"}, {"id": "l105", "name": "Demon Slayer", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, historique, surnaturel"}, {"id": "l106", "name": "Fairy tail", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, ecchi, fantasy, nekketsu"}, {"id": "l107", "name": "Naruto", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, nekketsu"}, {"id": "l108", "name": "Dragon ball", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie"}, {"id": "l109", "name": "Bakuman", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, slice of life"}, {"id": "l110", "name": "Sun Ken Rock", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, drame, mature, romance"}, {"id": "l111", "name": "Hideout", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, horreur"}, {"id": "l112", "name": "Jujutsu Kaisen 0", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l113", "name": "L'énigme de la faille d'Amigara Junji Ito", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l114", "name": "Bleach", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, drame, fantastique"}, {"id": "l115", "name": "Fairy Tail Zero", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l116", "name": "Death Note", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "drame, mystère, psychologique, surnaturel, tragique"}, {"id": "l117", "name": "Fairy Tail Blue Mistral", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure"}, {"id": "l118", "name": "Fairy Tail Side Stories", "status": "dispo", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l119", "name": "Four Knights of the Apocalypse", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, drame, fantastique"}, {"id": "l120", "name": "La voie du tablier", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, slice of life"}, {"id": "l121", "name": "Haikyu", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "comédie, drame, school-life, sport"}, {"id": "l122", "name": "Sakamoto Days", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie"}, {"id": "l123", "name": "Vagabond", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, drame, historique"}, {"id": "l124", "name": "Hunter x Hunter", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, comédie, drame, fantasy, surnaturel"}, {"id": "l125", "name": "GTO Lost Paradise", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l127", "name": "Spy x Family", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie"}, {"id": "l128", "name": "One Piece", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, drame, fantastique"}, {"id": "l129", "name": "Undead Unluck", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, science-fiction, surnaturel"}, {"id": "l130", "name": "Dandadan", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, horreur, mystère, romance"}, {"id": "l132", "name": "Boruto", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, comédie, fantasy"}, {"id": "l133", "name": "Sky High Survival", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": ""}, {"id": "l134", "name": "Berserk", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "aventure, fantastique, horreur, tragique"}, {"id": "l135", "name": "Valkyrie Apocalypse", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, drame, fantasy, historique"}, {"id": "l136", "name": "One Punch Man", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, comédie, science-fiction, surnaturel"}, {"id": "l137", "name": "Radiant", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, fantastique"}, {"id": "l138", "name": "Chainsaw Man", "status": "encours", "tomes": null, "avail": null, "chap": null, "note": "", "star": false, "lu": false, "arret": "", "reading": false, "dateLu": "", "genres": "action, aventure, horreur, mature, surnaturel"}];
+const STATUS = {
+  dispo: "Terminés", encours: "En cours", pasdispo: "Introuvables", pause: "En pause", atrier: "À trier"
+};
+const MAIN_TABS = ["tous", "lecture", "reprendre", "lu", "stats"];
+const LIST_TABS = ["dispo", "encours", "pause", "atrier", "pasdispo"];
+const TAB_LABEL = Object.assign({ tous: "Tous", lecture: "En lecture", reprendre: "À reprendre", lu: "Lus", stats: "Stats" }, STATUS);
+
+let db = null, col = null;
+let items = new Map();
+let covers = {};
+let genresData = {};
+let datesData = {};
+let flags = {}, flagsLoaded = false;
+let tab = "tous", q = "", sort = "az", genreFilter = "", openId = null, confirmDel = null;
+let showRated = true, showUnrated = true;
+let pickId = null, dupConfirm = null, dl = null, expMsg = "";
+let loaded = false, canWrite = true, importing = false;
+const pending = {}, timers = {}, chains = {};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+function setSync(kind, txt) {
+  const el = $("sync");
+  el.className = "sync" + (kind ? " " + kind : "");
+  $("syncTxt").textContent = txt;
+}
+
+function inTab(it, t) {
+  if (t === "tous") return true;
+  if (t === "stats") return false;
+  if (t === "lecture") return it.reading === true;
+  if (t === "reprendre") return (it.lu === true && it.status === "pause") || (typeof it.tomeLu === "number" && typeof it.avail === "number" && it.avail > it.tomeLu);
+  if (t === "lu") return it.lu === true;
+  return it.lu !== true && it.status === t;
+}
+
+const coverOf = (it) => it.cover || covers[it.id] || "";
+const genreList = (it) => String(it.genres || "").split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
+function today() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function fmtDate(s) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : esc(s); }
+function catLabel(it) { return it.lu ? (it.status === "pause" ? "Lu, arrêté" : "Lu, fini") : STATUS[it.status]; }
+
+function dupGroups() {
+  const arr = [...items.values()];
+  const keys = arr.map((i) => norm(i.name).replace(/[^a-z0-9]+/g, ""));
+  const parent = arr.map((_, i) => i);
+  const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  const bg = (s) => { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const g = s.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1); } return m; };
+  const grams = keys.map(bg);
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      const a = keys[i], b = keys[j];
+      if (!a || !b) continue;
+      if (a === b) { parent[find(i)] = find(j); continue; }
+      if (Math.abs(a.length - b.length) > 1) continue;
+      if ((/\d/.test(a) || /\d/.test(b)) && a.replace(/\D/g, "") !== b.replace(/\D/g, "")) continue;
+      let inter = 0;
+      grams[i].forEach((n, g) => { const m = grams[j].get(g); if (m) inter += Math.min(n, m); });
+      if ((2 * inter) / (a.length + b.length - 2) >= 0.9) parent[find(i)] = find(j);
+    }
+  }
+  const groups = {};
+  arr.forEach((it, i) => { const r = find(i); (groups[r] = groups[r] || []).push(it); });
+  return Object.values(groups).filter((g) => g.length > 1).map((g) => g.sort((a, b) => a.id.localeCompare(b.id)));
+}
+function dupHTML() {
+  let ign = [];
+  try { ign = JSON.parse(localStorage.getItem("dupIgnore") || "[]"); } catch (e) {}
+  const gs = dupGroups().filter((g) => !ign.includes(g.map((i) => i.id).join("|")));
+  if (!gs.length) return `<div><h2>Doublons possibles</h2><p class="hint">Aucun doublon repéré.</p></div>`;
+  return `<div><h2>Doublons possibles (${gs.length})</h2>` + gs.map((g) => {
+    const sig = g.map((i) => i.id).join("|");
+    return `<div class="dup" data-sig="${esc(sig)}">` + g.map((i) => `<div class="m"><span>${esc(i.name)} <small>${esc(catLabel(i))}</small></span>${dupConfirm === i.id
+      ? `<span><button type="button" class="btn danger" data-dup="yes" data-id="${esc(i.id)}">Confirmer : supprimer les autres</button> <button type="button" class="btn ghost" data-dup="no">Annuler</button></span>`
+      : `<button type="button" class="btn ghost" data-dup="keep" data-id="${esc(i.id)}"${canWrite ? "" : " disabled"}>Garder celui-ci</button>`}</div>`).join("")
+      + `<div class="m"><small>Garder fusionne les infos des autres fiches dans celle-ci, puis les supprime.</small><button type="button" class="btn ghost" data-dup="ignore">Ce ne sont pas des doublons</button></div></div>`;
+  }).join("") + `</div>`;
+}
+function mergeKeep(keepId) {
+  const g = dupGroups().find((gr) => gr.some((i) => i.id === keepId));
+  const k = items.get(keepId);
+  if (!g || !k) return;
+  const patch = {};
+  const empty = (v) => v == null || v === "";
+  const others = g.filter((o) => o.id !== keepId);
+  others.forEach((o) => {
+    ["tomes", "avail", "chap", "tomeLu", "rating", "genres", "url", "arret", "note", "dateLu", "cover"].forEach((f) => { if (empty(k[f]) && empty(patch[f]) && !empty(o[f])) patch[f] = o[f]; });
+    if (o.star && !k.star) patch.star = true;
+    if (o.lu === true && k.lu !== true && patch.lu !== true) { patch.lu = true; patch.status = o.status; }
+  });
+  if (Object.keys(patch).length) save(keepId, patch, true);
+  others.forEach((o) => { items.delete(o.id); if (col) queue(o.id, () => col.doc(o.id).delete()); });
+}
+
+function yearsHTML(all) {
+  const by = {}; let none = 0;
+  all.filter((i) => i.lu === true).forEach((i) => { if (/^\d{4}/.test(i.dateLu || "")) { const y = i.dateLu.slice(0, 4); by[y] = (by[y] || 0) + 1; } else none++; });
+  const rows = Object.entries(by).sort((a, b) => b[0].localeCompare(a[0]));
+  return (rows.length ? bars(rows) : '<p class="hint">Aucune date renseignée. Ajoute-la dans la fiche d’un manga lu.</p>') + (none ? `<p class="hint">${none} lus sans date.</p>` : "");
+}
+
+function exportHTML() {
+  if (!dl) return '<p class="hint">L’export n’est pas disponible dans cet affichage.</p>';
+  return `<div class="tools"><button type="button" class="btn ghost" data-exp="csv">Exporter en tableau (CSV)</button><button type="button" class="btn ghost" data-exp="json">Exporter en JSON</button></div><p class="hint">${esc(expMsg)}</p>`;
+}
+async function doExport(kind) {
+  if (!dl) return;
+  const rows = [...items.values()].sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
+  const day = today();
+  let filename, data;
+  if (kind === "json") {
+    filename = "mangatheque-" + day + ".json";
+    data = JSON.stringify(rows.map((it) => { const o = Object.assign({}, it); delete o.cover; return o; }), null, 1);
+  } else {
+    const cell = (v) => { v = v == null ? "" : String(v); return /[;"\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const head = ["Titre", "Catégorie", "Date de lecture", "Tomes", "Tomes dispo", "Dernier tome lu", "Chapitres", "Arrêt", "Note", "Genres", "Commentaire"];
+    filename = "mangatheque-" + day + ".csv";
+    data = "﻿" + [head.join(";")].concat(rows.map((it) => [it.name, catLabel(it), it.dateLu, it.tomes, it.avail, it.tomeLu, it.chap, it.arret, it.rating, it.genres, it.note].map(cell).join(";"))).join("\r\n");
+  }
+  try {
+    const blob = new Blob([data], { type: kind === "json" ? "application/json" : "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    expMsg = "Fichier téléchargé.";
+  } catch (e) { expMsg = "L’export a échoué."; }
+  if (tab === "stats") render();
+}
+
+function pickRandom() {
+  let pool = [...items.values()].filter((it) => ((it.lu === true && it.status === "pause") || (it.lu !== true && (it.status === "dispo" || it.status === "encours"))) && (!genreFilter || genreList(it).includes(genreFilter)));
+  if (pool.length > 1) pool = pool.filter((it) => it.id !== pickId);
+  pickId = pool.length ? pool[Math.floor(Math.random() * pool.length)].id : "none";
+  render();
+}
+function renderPick() {
+  const box = $("pickBox");
+  const it = items.get(pickId);
+  if (!it) {
+    box.innerHTML = `<div class="panel"><h2>Rien à proposer</h2><p>Aucun manga à lire ou à reprendre${genreFilter ? " avec ce genre" : ""}.</p><div class="actions"><button type="button" class="btn ghost" data-pick="close">Fermer</button></div></div>`;
+    return;
+  }
+  const cv = coverOf(it);
+  const subs = [it.lu ? "Arrêté" + (it.arret ? " : " + esc(it.arret) : "") : esc(STATUS[it.status])];
+  if (it.genres) subs.push(esc(it.genres));
+  if (typeof it.tomes === "number") subs.push(it.tomes + " tomes");
+  box.innerHTML = `<div class="panel"><div class="pick${cv ? "" : " nocover"}">${cv ? `<img class="cover" alt="" src="${cv}">` : ""}<div><h2>À lire ce soir ?</h2><h3>${esc(it.name)}</h3><div class="sub">${subs.join("<span>·</span>")}</div>
+    <div class="actions"><button type="button" class="btn" data-pick="open">Ouvrir la fiche</button><button type="button" class="btn ghost" data-pick="again">Un autre</button><button type="button" class="btn ghost" data-pick="close">Fermer</button></div></div></div></div>`;
+}
+function resizeCover(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try {
+        const W = 180, H = 260, r = W / H;
+        let sw = img.width, sh = img.height, sx = 0, sy = 0;
+        if (sw / sh > r) { const nw = sh * r; sx = (sw - nw) / 2; sw = nw; } else { const nh = sw / r; sy = (sh - nh) / 2; sh = nh; }
+        const c = document.createElement("canvas"); c.width = W; c.height = H;
+        c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+        resolve(c.toDataURL("image/jpeg", 0.75));
+      } catch (err) { reject(err); } finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image")); };
+    img.src = url;
+  });
+}
+
+function allGenres() {
+  const set = new Set();
+  items.forEach((it) => String(it.genres || "").split(",").forEach((g) => { g = g.trim().toLowerCase(); if (g) set.add(g); }));
+  return [...set].sort((a, b) => a.localeCompare(b, "fr"));
+}
+let genreSig = "";
+function syncGenre() {
+  const gs = allGenres(), sig = gs.join("|");
+  if (sig === genreSig) return;
+  genreSig = sig;
+  if (genreFilter && !gs.includes(genreFilter)) genreFilter = "";
+  $("genre").innerHTML = '<option value="">Tous les genres</option>' + gs.map((g) => `<option value="${esc(g)}"${g === genreFilter ? " selected" : ""}>${esc(g)}</option>`).join("");
+}
+function bars(rows) {
+  const max = Math.max(1, ...rows.map((r) => r[1]));
+  return rows.map(([l, n, c]) => `<div class="barrow"><span>${esc(l)}</span><div class="bartrack"><i style="width:${(n / max) * 100}%;--st:${c || "var(--accent)"}"></i></div><b>${n}</b></div>`).join("");
+}
+function statsHTML() {
+  const all = [...items.values()];
+  const lus = all.filter((i) => i.lu === true);
+  const arret = lus.filter((i) => i.status === "pause").length;
+  const rated = all.filter((i) => typeof i.rating === "number");
+  const avg = rated.length ? (rated.reduce((s, i) => s + i.rating, 0) / rated.length).toFixed(1).replace(".", ",") : "–";
+  const tomesRef = all.reduce((s, i) => s + (typeof i.tomes === "number" ? i.tomes : 0), 0);
+  const tomesLus = all.reduce((s, i) => s + (typeof i.tomeLu === "number" ? i.tomeLu : 0), 0);
+  const finis = lus.length - arret;
+  const tomesDispo = all.filter((i) => i.status === "dispo" || i.status === "encours").reduce((s, i) => s + (typeof i.avail === "number" ? i.avail : (typeof i.tomes === "number" ? i.tomes : 0)), 0);
+  const longues = all.filter((i) => typeof i.tomes === "number").sort((a, b) => b.tomes - a.tomes).slice(0, 8).map((i) => [i.name, i.tomes]);
+  const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+  const cats = Object.keys(STATUS).map((k) => [STATUS[k], all.filter((i) => i.status === k && i.lu !== true).length, `var(--st-${k})`]);
+  cats.push(["Lus", lus.length, "var(--st-lu)"]);
+  const gc = {};
+  all.forEach((i) => String(i.genres || "").split(",").forEach((g) => { g = g.trim().toLowerCase(); if (g) gc[g] = (gc[g] || 0) + 1; }));
+  const topG = Object.entries(gc).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const reprendre = all.filter((i) => inTab(i, "reprendre")).length;
+  return `<div class="stat-grid">${stat(all.length, "mangas au total")}${stat(lus.length, "lus")}${stat(finis, "finis à 100 %")}${stat(arret, "arrêtés en route")}${stat(reprendre, "à reprendre")}${stat(tomesRef, "tomes référencés")}${stat(tomesDispo, "tomes dispo sur ton site")}${stat(tomesLus || "–", "tomes lus (renseignés)")}${stat(avg, "note moyenne (" + rated.length + " notés)")}${stat(all.filter((i) => i.lu === true && String(i.dateLu || "").startsWith(String(new Date().getFullYear()))).length, "lus en " + new Date().getFullYear())}${stat(all.filter((i) => i.status !== "pasdispo" && !coverOf(i)).length, "sans couverture")}</div>
+    <div><h2>Par catégorie</h2>${bars(cats)}</div>
+    <div><h2>Séries les plus longues (tomes)</h2>${bars(longues)}</div>
+    <div><h2>Genres les plus présents</h2>${topG.length ? bars(topG.map(([g, n]) => [g, n])) : '<p class="empty">Renseigne les genres dans les fiches pour les voir ici.</p>'}</div>
+    <div><h2>Lus par année</h2>${yearsHTML(all)}</div>
+    ${dupHTML()}
+    <div><h2>Sauvegarde</h2>${exportHTML()}</div>`;
+}
+
+function renderTabs() {
+  const all = [...items.values()];
+  const mk = (t) => {
+    const n = all.filter((it) => inTab(it, t)).length;
+    return `<button class="tab" role="tab" type="button" data-tab="${t}" aria-selected="${t === tab}">${TAB_LABEL[t]} ${t === "stats" ? "" : `<b>${n}</b>`}</button>`;
+  };
+  $("tabs").innerHTML = MAIN_TABS.map(mk).join("");
+  $("side").innerHTML = '<span class="lbl">Ma liste</span>' + LIST_TABS.map(mk).join("");
+}
+
+function countHTML(it) {
+  const st = `var(--st-${it.status})`;
+  if (it.tomes != null && it.avail != null) {
+    const pct = Math.min(100, Math.round((it.avail / it.tomes) * 100));
+    return `<div class="count">${it.avail}/${it.tomes} tomes<div class="meter" style="--st:${st}"><span style="width:${pct}%"></span></div></div>`;
+  }
+  if (it.tomes != null) return `<div class="count">${it.tomes} tome${it.tomes > 1 ? "s" : ""}</div>`;
+  if (it.chap != null) return `<div class="count">${it.chap} chap.</div>`;
+  return `<div class="count"><small>à renseigner</small></div>`;
+}
+
+function editorHTML(it) {
+  const curCat = it.lu ? (it.status === "pause" ? "reprendre" : "lufini") : it.reading ? "lecture" : it.status;
+  const opt = (v, label) => `<option value="${v}"${curCat === v ? " selected" : ""}>${label}</option>`;
+  const opts = `<optgroup label="Ma liste">${Object.keys(STATUS).map((k) => opt(k, STATUS[k])).join("")}</optgroup>`
+    + `<optgroup label="Ma lecture">${opt("lecture", "En lecture")}${opt("reprendre", "À reprendre (arrêté en cours de route)")}${opt("lufini", "Lu, fini à 100 %")}</optgroup>`;
+  const num = (v) => (v == null ? "" : v);
+  const dis = canWrite ? "" : " disabled";
+  const del = confirmDel === it.id
+    ? `<button type="button" class="btn danger" data-act="del-yes"${dis}>Confirmer la suppression</button><button type="button" class="btn ghost" data-act="del-no">Annuler</button>`
+    : `<button type="button" class="btn ghost" data-act="del"${dis}>Supprimer</button>`;
+  return `<div class="editor" data-id="${esc(it.id)}">
+    <label>Catégorie<select data-f="cat"${dis}>${opts}</select></label>
+    <label>Tomes au total<input type="number" min="0" step="any" inputmode="decimal" data-f="tomes" value="${esc(num(it.tomes))}"${dis}></label>
+    <label>Tomes disponibles<input type="number" min="0" step="any" inputmode="decimal" data-f="avail" value="${esc(num(it.avail))}"${dis}></label>
+    <label>Chapitres<input type="number" min="0" inputmode="numeric" data-f="chap" value="${esc(num(it.chap))}"${dis}></label>
+    <label class="wide">Je me suis arrêté à<input type="text" data-f="arret" value="${esc(it.arret || "")}" placeholder="ex. chapitre 111, tome 7"${dis}></label>
+    <label>Dernier tome lu<input type="number" min="0" step="any" inputmode="decimal" data-f="tomeLu" value="${esc(num(it.tomeLu))}"${dis}></label>
+    <label>Ma note sur 10<input type="number" min="0" max="10" step="0.5" inputmode="decimal" data-f="rating" value="${esc(num(it.rating))}"${dis}></label>
+    <label class="wide">Genres, séparés par des virgules<input type="text" list="genreList" data-f="genres" value="${esc(it.genres || "")}" placeholder="ex. shonen, action"${dis}></label>
+    <label class="wide">Lien SushiScan (facultatif)<input type="text" data-f="url" value="${esc(it.url || "")}" placeholder="laisse vide pour une recherche automatique"${dis}></label>
+    <label class="wide">Note<textarea rows="2" data-f="note"${dis}>${esc(it.note || "")}</textarea></label>
+    ${it.lu ? `<label>Date de lecture<input type="date" data-f="dateLu" value="${esc(it.dateLu || "")}"${dis}></label>` : ""}
+    <label class="wide">Couverture (photo ou image)<input type="file" accept="image/*" data-cover="1"${dis}></label>
+    <div class="wide readbar">${it.lu
+      ? `<span class="readnow">Dans Lus : ${it.status === "pause" ? "arrêté en cours de route" : "fini à 100 %"}</span><button type="button" class="btn ghost" data-act="lu-non"${dis}>Remettre à lire</button>`
+      : `${it.reading ? `<button type="button" class="btn ghost" data-act="lec-off"${dis}>Arrêter la lecture</button>` : `<button type="button" class="btn ghost" data-act="lec-on"${dis}>En train de lire</button>`}<button type="button" class="btn" data-act="lu-fini"${dis}>Lu, fini à 100 %</button><button type="button" class="btn ghost" data-act="lu-arret"${dis}>Lu, arrêté en cours de route</button>`}</div>
+    <div class="wide checks">
+      <label><input type="checkbox" data-f="star"${it.star ? " checked" : ""}${dis}> Marqué</label>
+    </div>
+    <div class="wide actions"><a class="btn ghost" href="${esc(/^https?:\/\//.test(it.url || "") ? it.url : "https://sushiscan.net/?s=" + encodeURIComponent(it.name))}" target="_blank" rel="noopener noreferrer">Ouvrir sur SushiScan</a>${it.cover ? `<button type="button" class="btn ghost" data-act="cover-del"${dis}>Retirer ma couverture</button>` : ""}${del}</div>
+  </div>`;
+}
+
+function itemHTML(it) {
+  const st = `var(--st-${it.status})`;
+  const subs = [];
+  if (it.chap != null && it.tomes != null) subs.push(`${it.chap} chapitres`);
+  if (it.arret) subs.push(`<span class="arret">Arrêté : ${esc(it.arret)}</span>`);
+  if (typeof it.tomeLu === "number" && (it.tomes == null || it.tomeLu < it.tomes)) subs.push(`<span class="arret">Prochain : tome ${Math.floor(it.tomeLu) + 1}</span>`);
+  if (typeof it.rating === "number") subs.push(`${it.rating}/10`);
+  if (it.genres) subs.push(esc(it.genres));
+  if (it.lu && it.dateLu) subs.push((it.status === "pause" ? "Arrêté le " : "Fini le ") + fmtDate(it.dateLu));
+  const cv = coverOf(it);
+  const newTome = typeof it.avail === "number" && typeof it.tomeLu === "number" && it.avail > it.tomeLu;
+  if (it.note) subs.push(esc(it.note));
+  const open = openId === it.id;
+  return `<li class="item" style="--st:${st}">
+    <button type="button" class="head${cv ? " hascover" : ""}" data-open="${esc(it.id)}" aria-expanded="${open}">
+      <span class="stripe"></span>${cv ? `<img class="cover" alt="" src="${cv}">` : ""}
+      <span class="title">${it.star ? '<span class="star">★</span>' : ""}${esc(it.name)}${it.reading ? '<span class="lec">En lecture</span>' : ""}${newTome ? '<span class="new">Nouveau tome</span>' : ""}${subs.length ? `<span class="sub">${subs.join("<span>·</span>")}</span>` : ""}</span>
+      ${countHTML(it)}
+    </button>
+    ${open ? editorHTML(it) : ""}
+  </li>`;
+}
+
+function render(fromSnap) {
+  const ae = document.activeElement;
+  if (fromSnap && ae && $("list").contains(ae) && ae.matches("input,textarea,select")) { renderTabs(); return; }
+  renderTabs();
+  syncGenre();
+  const isStats = tab === "stats";
+  $("statsBox").hidden = !isStats; if (isStats) $("lusFilter").hidden = true; $("pickBox").hidden = isStats || pickId == null; if (pickId != null && !isStats) renderPick(); $("list").hidden = isStats; document.querySelector(".bar").hidden = isStats;
+  if (isStats) { try { $("statsBox").innerHTML = statsHTML(); } catch (err) { $("statsBox").innerHTML = `<p class="empty">Impossible d’afficher les stats : ${esc(err && err.message)}</p>`; } $("empty").hidden = true; renderImport(); return; }
+  const nq = norm(q.trim());
+  const hasGenre = (it) => String(it.genres || "").split(",").map((g) => g.trim().toLowerCase()).includes(genreFilter);
+  let rows = [...items.values()].filter((it) => inTab(it, tab) && (!nq || norm(it.name).includes(nq)) && (!genreFilter || hasGenre(it)));
+  $("lusFilter").hidden = tab !== "lu";
+  if (tab === "lu") {
+    const isRated = (it) => typeof it.rating === "number";
+    $("nRated").textContent = rows.filter(isRated).length;
+    $("nUnrated").textContent = rows.filter((it) => !isRated(it)).length;
+    rows = rows.filter((it) => (isRated(it) ? showRated : showUnrated));
+  }
+  const byName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
+  if (sort === "tomes") rows.sort((a, b) => (b.tomes || 0) - (a.tomes || 0) || byName(a, b));
+  else if (sort === "note") rows.sort((a, b) => ((typeof b.rating === "number" ? b.rating : -1) - (typeof a.rating === "number" ? a.rating : -1)) || byName(a, b));
+  else if (sort === "recent") rows.sort((a, b) => String(b.dateLu || "").localeCompare(String(a.dateLu || "")) || byName(a, b));
+  else if (sort === "retard") rows.sort((a, b) => ((b.avail || 0) - (a.avail || 0)) || byName(a, b));
+  else rows.sort(byName);
+  if (tab === "lu") {
+    const fin = rows.filter((it) => it.status !== "pause"), arr = rows.filter((it) => it.status === "pause");
+    $("list").innerHTML =
+      (arr.length ? `<li class="group">Arrêtés en cours de route <b>${arr.length}</b></li>` + arr.map(itemHTML).join("") : "") +
+      (fin.length ? `<li class="group">Finis à 100 % <b>${fin.length}</b></li>` + fin.map(itemHTML).join("") : "");
+  } else $("list").innerHTML = rows.map(itemHTML).join("");
+  const empty = $("empty");
+  if (!loaded) { empty.hidden = false; empty.textContent = "Chargement de ta bibliothèque…"; }
+  else if (!rows.length) {
+    empty.hidden = false;
+    empty.textContent = items.size === 0 ? "Ta bibliothèque est vide. Ajoute un manga ou importe ta liste." : (nq ? "Aucun résultat pour cette recherche." : "Rien dans cette catégorie pour l’instant.");
+  } else empty.hidden = true;
+  renderImport();
+}
+
+let importMsgTxt = "";
+function renderImport() {
+  const box = $("importBox");
+  const ready = loaded && flagsLoaded && db && canWrite;
+  const need = ready && items.size === 0 && !flags.main;
+  box.hidden = !(need || importing);
+  if (box.hidden) return;
+  box.innerHTML = `<div class="panel"><h2>Bienvenue dans ta mangathèque</h2>
+    <p>Ta bibliothèque est vide. Choisis comment commencer.</p>
+    <div class="tools"><button type="button" class="btn" id="startCatalog"${importing ? " disabled" : ""}>Partir du catalogue (${SEED.length} mangas)</button>
+    <label class="btn ghost filebtn">Importer une sauvegarde<input type="file" id="startFile" accept=".json,application/json" hidden></label></div>
+    <p id="importMsg" role="status">${esc(importMsgTxt)}</p></div>`;
+}
+
+async function runImport(list, kind) {
+  if (importing || !col) return;
+  importing = true; importMsgTxt = "Import en cours…"; renderImport();
+  let failed = false;
+  try {
+    await col.setMany(list.map((it) => { const body = Object.assign({}, it); delete body.id; return { id: it.id, data: body }; }), (n) => {
+      importMsgTxt = n + " / " + list.length; const m = $("importMsg"); if (m) m.textContent = importMsgTxt;
+    });
+  } catch (e) { failed = true; }
+  importing = false; importMsgTxt = "";
+  if (failed) $("banner").innerHTML = `<div class="note-banner">L’import a échoué. Recharge la page pour réessayer.</div>`;
+  else if (kind) { flags = Object.assign({}, flags, { [kind]: true }); try { await db.doc("meta/imports").set(flags); } catch (e) {} }
+  render();
+}
+
+function queue(id, fn) {
+  const next = (chains[id] || Promise.resolve()).then(fn).catch((e) => {
+    if (e && e.code === "invalid_argument") { canWrite = false; $("banner").innerHTML = `<div class="note-banner">Tu n’as pas le droit de modifier cette bibliothèque depuis cet appareil.</div>`; }
+    else setSync("bad", "Échec de l’enregistrement");
+  });
+  chains[id] = next;
+  return next;
+}
+
+function save(id, patch, now) {
+  const it = items.get(id); if (!it) return;
+  Object.assign(it, patch);
+  pending[id] = Object.assign(pending[id] || {}, patch);
+  clearTimeout(timers[id]);
+  const flush = () => {
+    const p = pending[id]; delete pending[id];
+    if (!p || !col) return;
+    setSync("", "Enregistrement…");
+    queue(id, () => col.doc(id).update(p).then(() => setSync("ok", "Synchronisé")));
+  };
+  if (now) flush(); else timers[id] = setTimeout(flush, 500);
+}
+
+function parseNum(v) { if (v === "" || v == null) return null; const n = Number(v); return isFinite(n) ? n : null; }
+
+/* events */
+function onTabClick(e) {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  tab = b.dataset.tab; openId = null; confirmDel = null; render();
+}
+$("tabs").addEventListener("click", onTabClick);
+$("side").addEventListener("click", onTabClick);
+$("q").addEventListener("input", (e) => { q = e.target.value; render(); });
+$("sort").addEventListener("change", (e) => { sort = e.target.value; render(); });
+$("fRated").addEventListener("change", (e) => { showRated = e.target.checked; render(); });
+$("fUnrated").addEventListener("change", (e) => { showUnrated = e.target.checked; render(); });
+$("genre").addEventListener("change", (e) => { genreFilter = e.target.value; render(); });
+$("addToggle").addEventListener("click", () => {
+  const p = $("addPanel"); p.hidden = !p.hidden;
+  if (!p.hidden) { $("addStatus").value = STATUS[tab] ? tab : "atrier"; $("addName").focus(); }
+});
+$("addPanel").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("addName").value.trim();
+  if (!name || !col || !canWrite) return;
+  const id = "u" + Date.now().toString(36);
+  const it = { id, name, status: $("addStatus").value, tomes: null, avail: null, chap: null, note: "", star: false, lu: false, arret: "" };
+  items.set(id, it);
+  const body = Object.assign({}, it); delete body.id;
+  setSync("", "Enregistrement…");
+  queue(id, () => col.doc(id).set(body).then(() => setSync("ok", "Synchronisé")));
+  $("addName").value = ""; $("addPanel").hidden = true;
+  tab = it.status; openId = id; render();
+});
+$("importBox").addEventListener("click", (e) => { if (e.target.id === "startCatalog") runImport(SEED, "main"); });
+$("importBox").addEventListener("change", async (e) => {
+  if (e.target.id !== "startFile" || !e.target.files || !e.target.files[0]) return;
+  try {
+    const raw = JSON.parse(await e.target.files[0].text());
+    const arr = Array.isArray(raw) ? raw : Object.keys(raw).map((k) => Object.assign({ id: k }, raw[k]));
+    const list = arr.filter((o) => o && typeof o.name === "string").map((o, i) => Object.assign({}, o, { id: String(o.id || "i" + Date.now().toString(36) + i) }));
+    if (!list.length) throw new Error("vide");
+    await runImport(list, "main");
+  } catch (err) { importMsgTxt = "Ce fichier n’est pas une sauvegarde valide."; renderImport(); }
+});
+$("list").addEventListener("click", (e) => {
+  const h = e.target.closest("[data-open]");
+  if (h) { openId = openId === h.dataset.open ? null : h.dataset.open; confirmDel = null; render(); return; }
+  const a = e.target.closest("[data-act]"); if (!a) return;
+  const id = a.closest(".editor").dataset.id;
+  if (a.dataset.act === "lu-fini") { save(id, { lu: true, status: "dispo", reading: false, dateLu: today() }, true); render(); }
+  else if (a.dataset.act === "lu-arret") { save(id, { lu: true, status: "pause", reading: false, dateLu: today() }, true); render(); }
+  else if (a.dataset.act === "lu-non") { save(id, { lu: false, dateLu: "" }, true); render(); }
+  else if (a.dataset.act === "lec-on") { save(id, { reading: true }, true); render(); }
+  else if (a.dataset.act === "lec-off") { save(id, { reading: false }, true); render(); }
+  else if (a.dataset.act === "cover-del") { save(id, { cover: "" }, true); render(); }
+  else if (a.dataset.act === "del") { confirmDel = id; render(); }
+  else if (a.dataset.act === "del-no") { confirmDel = null; render(); }
+  else if (a.dataset.act === "del-yes") {
+    items.delete(id); openId = null; confirmDel = null; render();
+    if (col) queue(id, () => col.doc(id).delete().then(() => setSync("ok", "Synchronisé")));
+  }
+});
+function onField(e, now) {
+  const f = e.target.dataset && e.target.dataset.f; if (!f) return;
+  const id = e.target.closest(".editor").dataset.id;
+  let v;
+  if (f === "cat") {
+    const cur = items.get(id), c = e.target.value;
+    let patch;
+    if (STATUS[c]) patch = { status: c, lu: false, reading: false };
+    else if (c === "lecture") patch = (cur && cur.lu) ? { lu: false, reading: true, status: "encours" } : { lu: false, reading: true };
+    else if (c === "reprendre") patch = { lu: true, status: "pause", reading: false, dateLu: (cur && cur.dateLu) || today() };
+    else patch = { lu: true, status: "dispo", reading: false, dateLu: (cur && cur.dateLu) || today() };
+    save(id, patch, true);
+    render();
+    return;
+  }
+  if (e.target.type === "checkbox") v = e.target.checked;
+  else if (e.target.type === "number") v = parseNum(e.target.value);
+  else v = e.target.value;
+  save(id, { [f]: v }, now);
+  if (now) render();
+}
+$("list").addEventListener("input", (e) => { if (e.target.type !== "checkbox" && e.target.tagName !== "SELECT") onField(e, false); });
+$("list").addEventListener("change", (e) => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") onField(e, true); });
+$("list").addEventListener("change", (e) => {
+  const f = e.target;
+  if (!f.dataset || !f.dataset.cover || !f.files || !f.files[0]) return;
+  const id = f.closest(".editor").dataset.id;
+  resizeCover(f.files[0]).then((url) => { save(id, { cover: url }, true); render(); }).catch(() => { $("banner").innerHTML = '<div class="note-banner">Cette image n’a pas pu être lue.</div>'; });
+});
+$("statsBox").addEventListener("click", (e) => {
+  const x = e.target.closest("[data-exp]");
+  if (x) { doExport(x.dataset.exp); return; }
+  const d = e.target.closest("[data-dup]");
+  if (!d) return;
+  const act = d.dataset.dup;
+  if (act === "keep") dupConfirm = d.dataset.id;
+  else if (act === "no") dupConfirm = null;
+  else if (act === "yes") { mergeKeep(d.dataset.id); dupConfirm = null; }
+  else if (act === "ignore") { try { const ig = JSON.parse(localStorage.getItem("dupIgnore") || "[]"); ig.push(d.closest(".dup").dataset.sig); localStorage.setItem("dupIgnore", JSON.stringify(ig)); } catch (err) {} }
+  render();
+});
+$("pickBtn").addEventListener("click", pickRandom);
+$("pickBox").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pick]");
+  if (!b) return;
+  if (b.dataset.pick === "again") { pickRandom(); return; }
+  if (b.dataset.pick === "close") { pickId = null; render(); return; }
+  tab = "tous"; q = ""; $("q").value = ""; openId = pickId; pickId = null; render();
+  const el = document.querySelector('[data-open="' + openId + '"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: "center" });
+});
+$("list").addEventListener("focusout", (e) => { const id = e.target.closest && e.target.closest(".editor") && e.target.closest(".editor").dataset.id; if (id && pending[id]) { clearTimeout(timers[id]); save(id, {}, true); } });
+
+/* ---------- Supabase (appels directs, sans bibliothèque) ---------- */
+const SB_URL = "https://dktcctnbbscbeapmiqgo.supabase.co";
+const SB_KEY = "sb_publishable_fXKDvFbxnJjQkYN3nyjQkQ_2XCbCY3X";
+const SESSION_KEY = "mgth_session";
+
+const api = (function () {
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (e) { session = null; }
+  const store = (s) => { session = s; try { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); } catch (e) {} };
+  const toSession = (j) => ({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Math.floor(Date.now() / 1000) + (j.expires_in || 3600), user: { id: j.user.id, email: j.user.email } });
+  const out = { onLost: null, current: () => session };
+
+  async function authCall(path, body) {
+    let r;
+    try { r = await fetch(SB_URL + "/auth/v1/" + path, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
+    catch (e) { const er = new Error("Impossible de joindre le serveur. Vérifie ta connexion."); er.network = true; throw er; }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const er = new Error(j.msg || j.error_description || j.message || "Erreur de connexion"); er.status = r.status; er.errCode = j.error_code || j.code || ""; throw er; }
+    return j;
+  }
+  out.signIn = async (email, password) => { store(toSession(await authCall("token?grant_type=password", { email, password }))); return session; };
+  out.signUp = async (email, password) => { const j = await authCall("signup", { email, password }); if (j.access_token) { store(toSession(j)); return session; } return null; };
+  out.signOut = () => store(null);
+
+  let refreshing = null;
+  async function token() {
+    if (!session) { const e = new Error("auth"); e.code = "auth"; throw e; }
+    if (session.expires_at - 60 > Date.now() / 1000) return session.access_token;
+    if (!refreshing) refreshing = authCall("token?grant_type=refresh_token", { refresh_token: session.refresh_token }).then((j) => store(toSession(j))).finally(() => { refreshing = null; });
+    try { await refreshing; }
+    catch (e) {
+      if (e.network) { const er = new Error(e.message); er.code = "unavailable"; throw er; }
+      store(null); if (out.onLost) out.onLost(); const er = new Error("auth"); er.code = "auth"; throw er;
+    }
+    return session.access_token;
+  }
+  out.rest = async function (path, opts) {
+    opts = opts || {};
+    const tk = await token();
+    let r;
+    try {
+      r = await fetch(SB_URL + "/rest/v1/" + path, {
+        method: opts.method || "GET",
+        headers: Object.assign({ apikey: SB_KEY, Authorization: "Bearer " + tk, "Content-Type": "application/json" }, opts.headers || {}),
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+    } catch (e) { const er = new Error("réseau"); er.code = "unavailable"; throw er; }
+    if (r.status === 401) { store(null); if (out.onLost) out.onLost(); const er = new Error("auth"); er.code = "auth"; throw er; }
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      const er = new Error(j.message || "Erreur " + r.status);
+      er.code = (r.status === 403 || j.code === "42501") ? "invalid_argument" : "unavailable";
+      throw er;
+    }
+    if (r.status === 204) return null;
+    return r.json().catch(() => null);
+  };
+  return out;
+})();
+
+/* Petite couche qui reprend le fonctionnement de la base utilisée par la page :
+   un document par manga, des instantanés quand quelque chose change. */
+function makeDb() {
+  const cache = new Map();
+  let listener = null, flagsRow = null, initial = null, lastTs = "", inflight = 0;
+
+  const snap = (changes) => ({ docChanges: () => changes.map((c) => ({ type: c.type, doc: { id: c.id, exists: true, data: () => cache.get(c.id) } })), metadata: { fromCache: false } });
+  const emit = (changes) => { if (listener && changes.length) listener(snap(changes)); };
+
+  async function fetchAll() {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const part = await api.rest("mangas?select=id,data,updated_at&order=id&limit=1000&offset=" + from);
+      rows.push(...(part || []));
+      if (!part || part.length < 1000) break;
+    }
+    return rows;
+  }
+  function apply(rows, removeMissing) {
+    const changes = [], seen = new Set();
+    for (const r of rows) {
+      if (r.updated_at && r.updated_at > lastTs) lastTs = r.updated_at;
+      if (r.id === "__imports") { flagsRow = r.data || {}; continue; }
+      seen.add(r.id);
+      const next = r.data || {};
+      if (!cache.has(r.id)) { cache.set(r.id, next); changes.push({ type: "added", id: r.id }); }
+      else if (JSON.stringify(cache.get(r.id)) !== JSON.stringify(next)) { cache.set(r.id, next); changes.push({ type: "modified", id: r.id }); }
+    }
+    if (removeMissing) for (const id of [...cache.keys()]) if (!seen.has(id)) { cache.delete(id); changes.push({ type: "removed", id }); }
+    return changes;
+  }
+  const ensureLoaded = () => initial || (initial = fetchAll().then((rows) => { apply(rows, true); }));
+
+  async function refreshFull() { if (inflight || !initial) return; try { emit(apply(await fetchAll(), true)); } catch (e) {} }
+  async function refreshIncremental() {
+    if (inflight || !initial || !lastTs) return;
+    try {
+      const since = new Date(new Date(lastTs).getTime() - 120000).toISOString();
+      emit(apply((await api.rest("mangas?select=id,data,updated_at&order=id&updated_at=gt." + encodeURIComponent(since))) || [], false));
+    } catch (e) {}
+  }
+  setInterval(() => { if (!document.hidden) refreshIncremental(); }, 30000);
+  setInterval(() => { if (!document.hidden) refreshFull(); }, 300000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshFull(); });
+
+  async function upsert(rows) {
+    inflight++;
+    try {
+      const ts = new Date().toISOString();
+      await api.rest("mangas?on_conflict=user_id,id", {
+        method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: rows.map((r) => ({ user_id: api.current().user.id, id: r.id, data: r.data, updated_at: ts })),
+      });
+      if (ts > lastTs) lastTs = ts;
+    } finally { inflight--; }
+  }
+
+  const col = {
+    doc(id) {
+      return {
+        async set(d) { const had = cache.has(id); cache.set(id, d); await upsert([{ id, data: d }]); emit([{ type: had ? "modified" : "added", id }]); },
+        async update(patch) {
+          if (!cache.has(id)) { const e = new Error("absent"); e.code = "invalid_argument"; throw e; }
+          const next = Object.assign({}, cache.get(id), patch);
+          cache.set(id, next); await upsert([{ id, data: next }]); emit([{ type: "modified", id }]);
+        },
+        async delete() {
+          const had = cache.delete(id);
+          inflight++;
+          try { await api.rest("mangas?id=eq." + encodeURIComponent(id), { method: "DELETE", headers: { Prefer: "return=minimal" } }); }
+          finally { inflight--; }
+          if (had) emit([{ type: "removed", id }]);
+        },
+      };
+    },
+    onSnapshot(next, error) {
+      listener = next;
+      ensureLoaded().then(() => next(snap([...cache.keys()].map((id) => ({ type: "added", id }))))).catch((e) => { initial = null; if (error) error(e); });
+      return () => { listener = null; };
+    },
+    async setMany(entries, progress) {
+      const fresh = entries.filter((e) => !cache.has(e.id));
+      for (let i = 0; i < fresh.length; i += 100) {
+        const chunk = fresh.slice(i, i + 100);
+        chunk.forEach((e) => cache.set(e.id, e.data));
+        try { await upsert(chunk); } catch (err) { chunk.forEach((e) => cache.delete(e.id)); throw err; }
+        emit(chunk.map((e) => ({ type: "added", id: e.id })));
+        if (progress) progress(Math.min(i + 100, fresh.length));
+      }
+    },
+  };
+  return {
+    collection: () => col,
+    doc: () => ({
+      onSnapshot(next, error) { ensureLoaded().then(() => next({ exists: flagsRow != null, data: () => flagsRow })).catch((e) => { initial = null; if (error) error(e); }); return () => {}; },
+      async set(d) { flagsRow = d; await upsert([{ id: "__imports", data: d }]); },
+    }),
+  };
+}
+
+/* ---------- connexion ---------- */
+function showAuth(msg) {
+  document.querySelector(".wrap").hidden = true;
+  $("authBox").hidden = false;
+  $("authMsg").textContent = msg || "";
+}
+function setAuthBusy(b) { $("authIn").disabled = b; $("authSignup").disabled = b; }
+async function authSubmit(mode) {
+  const email = $("authEmail").value.trim(), password = $("authPass").value;
+  if (!email || password.length < 6) { $("authMsg").textContent = "Entre un e-mail et un mot de passe d’au moins 6 caractères."; return; }
+  $("authMsg").textContent = "Un instant…"; setAuthBusy(true);
+  try {
+    const s = mode === "up" ? await api.signUp(email, password) : await api.signIn(email, password);
+    if (s) startApp(s);
+    else $("authMsg").textContent = "Compte créé. Ouvre l’e-mail de confirmation que tu viens de recevoir, puis connecte-toi.";
+  } catch (e) {
+    const m = String(e.message || "");
+    $("authMsg").textContent = /invalid login|invalid_credentials/i.test(m + e.errCode) ? "E-mail ou mot de passe incorrect."
+      : /already registered|user_already_exists/i.test(m + e.errCode) ? "Un compte existe déjà avec cet e-mail. Clique sur « Se connecter »."
+      : /rate limit|over_email_send_rate_limit/i.test(m + e.errCode) ? "Trop d’essais. Réessaie dans quelques minutes."
+      : /not confirmed|email_not_confirmed/i.test(m + e.errCode) ? "Confirme d’abord ton adresse avec l’e-mail reçu."
+      : m || "Connexion impossible.";
+  }
+  setAuthBusy(false);
+}
+$("authForm").addEventListener("submit", (e) => { e.preventDefault(); authSubmit("in"); });
+$("authSignup").addEventListener("click", () => authSubmit("up"));
+$("logout").addEventListener("click", () => { api.signOut(); location.reload(); });
+api.onLost = () => showAuth("Ta session a expiré. Reconnecte-toi.");
+
+function startApp(session) {
+  $("authBox").hidden = true;
+  document.querySelector(".wrap").hidden = false;
+  $("who").textContent = session.user.email;
+  db = makeDb();
+  col = db.collection("mangas");
+  dl = true;
+  db.doc("meta/imports").onSnapshot(
+    (s) => { flags = s.exists ? (s.data() || {}) : {}; flagsLoaded = true; render(true); },
+    () => { flags = { main: true }; flagsLoaded = true; render(true); }
+  );
+  const timer = setTimeout(() => { if (!loaded) setSync("bad", "Serveur injoignable pour l’instant"); }, 10000);
+  col.onSnapshot((snap) => {
+    snap.docChanges().forEach((c) => {
+      if (c.type === "removed") items.delete(c.doc.id);
+      else if (!pending[c.doc.id]) items.set(c.doc.id, Object.assign({ id: c.doc.id }, c.doc.data()));
+    });
+    if (!snap.metadata.fromCache) { clearTimeout(timer); setSync("ok", "Synchronisé"); }
+    loaded = true; render(true);
+  }, (err) => {
+    clearTimeout(timer); loaded = true;
+    setSync("bad", "Erreur de synchronisation");
+    render();
+  });
+}
+
+/* ---------- démarrage ---------- */
+for (const k of Object.keys(STATUS)) $("addStatus").insertAdjacentHTML("beforeend", `<option value="${k}">${STATUS[k]}</option>`);
+render();
+try { fetch("covers.json").then((r) => (r.ok ? r.json() : null)).then((c) => { if (c && typeof c === "object") { covers = c; render(true); } }).catch(() => {}); } catch (e) {}
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if (api.current()) startApp(api.current()); else showAuth();
+</script>
+</body>
+</html>
