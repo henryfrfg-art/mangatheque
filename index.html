@@ -355,8 +355,21 @@ function yearsHTML(all) {
 
 function exportHTML() {
   if (!dl) return '<p class="hint">L’export n’est pas disponible dans cet affichage.</p>';
-  return `<div class="tools"><button type="button" class="btn ghost" data-exp="csv">Exporter en tableau (CSV)</button><button type="button" class="btn ghost" data-exp="json">Exporter en JSON</button></div><p class="hint">${esc(expMsg)}</p>`;
+  return `<div class="tools"><button type="button" class="btn ghost" data-exp="csv">Exporter en tableau (CSV)</button><button type="button" class="btn ghost" data-exp="json">Exporter en JSON</button><label class="btn ghost filebtn">Restaurer une sauvegarde<input type="file" id="restoreFile" accept=".json,application/json" hidden></label></div><p class="hint">${esc(expMsg)}</p>`;
 }
+async function doRestore(file) {
+  try {
+    const raw = JSON.parse(await file.text());
+    const arr = Array.isArray(raw) ? raw : Object.keys(raw).map((k) => Object.assign({ id: k }, raw[k]));
+    const list = arr.filter((o) => o && o.id && typeof o.name === "string");
+    if (!list.length) throw new Error("vide");
+    expMsg = "Restauration en cours…"; render();
+    await col.replaceMany(list.map((it) => { const body = Object.assign({}, it); delete body.id; delete body.cover; return { id: String(it.id), data: body }; }));
+    expMsg = list.length + " mangas restaurés.";
+  } catch (e) { expMsg = "Ce fichier n’est pas une sauvegarde valide."; }
+  render();
+}
+document.addEventListener("change", (e) => { if (e.target.id === "restoreFile" && e.target.files[0]) doRestore(e.target.files[0]); });
 async function doExport(kind) {
   if (!dl) return;
   const rows = [...items.values()].sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
@@ -884,6 +897,15 @@ function makeDb() {
       listener = next;
       ensureLoaded().then(() => next(snap([...cache.keys()].map((id) => ({ type: "added", id }))))).catch((e) => { initial = null; if (error) error(e); });
       return () => { listener = null; };
+    },
+    async replaceMany(entries) {
+      for (let i = 0; i < entries.length; i += 100) {
+        const chunk = entries.slice(i, i + 100);
+        const had = chunk.map((e) => cache.has(e.id));
+        chunk.forEach((e) => cache.set(e.id, e.data));
+        await upsert(chunk);
+        emit(chunk.map((e, k) => ({ type: had[k] ? "modified" : "added", id: e.id })));
+      }
     },
     async setMany(entries, progress) {
       const fresh = entries.filter((e) => !cache.has(e.id));
