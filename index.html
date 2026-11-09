@@ -211,6 +211,7 @@ footer { color: var(--mute); font-size: .8rem; padding-top: 22px; }
       <option value="retard">Reste à lire (dispo)</option>
       <option value="note">Meilleure note</option>
       <option value="recent">Lus récemment</option>
+      <option value="auteur">Auteur (A → Z)</option>
     </select>
     <select id="genre" aria-label="Genre"><option value="">Tous les genres</option></select>
     <button class="btn ghost" id="pickBtn" type="button">Au hasard</button>
@@ -355,7 +356,7 @@ function yearsHTML(all) {
 
 function exportHTML() {
   if (!dl) return '<p class="hint">L’export n’est pas disponible dans cet affichage.</p>';
-  return `<div class="tools"><button type="button" class="btn ghost" data-exp="csv">Exporter en tableau (CSV)</button><button type="button" class="btn ghost" data-exp="json">Exporter en JSON</button><label class="btn ghost filebtn">Restaurer une sauvegarde<input type="file" id="restoreFile" accept=".json,application/json" hidden></label></div><p class="hint">${esc(expMsg)}</p>`;
+  return `<div class="tools"><button type="button" class="btn ghost" data-exp="csv">Exporter en tableau (CSV)</button><button type="button" class="btn ghost" data-exp="json">Exporter en JSON</button><label class="btn ghost filebtn">Restaurer une sauvegarde<input type="file" id="restoreFile" accept=".json,application/json" hidden></label><label class="btn ghost filebtn">Importer les auteurs<input type="file" id="auteursFile" accept=".json,application/json" hidden></label></div><p class="hint">${esc(expMsg)}</p>`;
 }
 async function doRestore(file) {
   try {
@@ -370,6 +371,22 @@ async function doRestore(file) {
   render();
 }
 document.addEventListener("change", (e) => { if (e.target.id === "restoreFile" && e.target.files[0]) doRestore(e.target.files[0]); });
+async function doAuteurs(file) {
+  try {
+    const raw = JSON.parse(await file.text());
+    let n = 0;
+    const todo = [];
+    for (const id of Object.keys(raw)) {
+      const it = items.get(id), a = String(raw[id] || "").trim();
+      if (it && a && !String(it.auteur || "").trim()) todo.push({ id, a });
+    }
+    expMsg = "Import des auteurs…"; render();
+    for (const t of todo) { await col.doc(t.id).update({ auteur: t.a }); items.get(t.id).auteur = t.a; n++; }
+    expMsg = n + " auteurs ajoutés (ceux que tu avais déjà remplis n’ont pas été modifiés).";
+  } catch (e) { expMsg = "Ce fichier n’est pas valide."; }
+  render();
+}
+document.addEventListener("change", (e) => { if (e.target.id === "auteursFile" && e.target.files[0]) doAuteurs(e.target.files[0]); });
 async function doExport(kind) {
   if (!dl) return;
   const rows = [...items.values()].sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
@@ -509,6 +526,8 @@ function editorHTML(it) {
     ? `<button type="button" class="btn danger" data-act="del-yes"${dis}>Confirmer la suppression</button><button type="button" class="btn ghost" data-act="del-no">Annuler</button>`
     : `<button type="button" class="btn ghost" data-act="del"${dis}>Supprimer</button>`;
   return `<div class="editor" data-id="${esc(it.id)}">
+    <label class="wide">Titre<input type="text" data-f="name" value="${esc(it.name)}"${dis}></label>
+    <label class="wide">Auteur(s)<input type="text" data-f="auteur" value="${esc(it.auteur || "")}" placeholder="ex. Eiichiro Oda"${dis}></label>
     <label>Catégorie<select data-f="cat"${dis}>${opts}</select></label>
     <label>Tomes au total<input type="number" min="0" step="any" inputmode="decimal" data-f="tomes" value="${esc(num(it.tomes))}"${dis}></label>
     <label>Tomes disponibles<input type="number" min="0" step="any" inputmode="decimal" data-f="avail" value="${esc(num(it.avail))}"${dis}></label>
@@ -538,6 +557,7 @@ function itemHTML(it) {
   if (it.arret) subs.push(`<span class="arret">Arrêté : ${esc(it.arret)}</span>`);
   if (typeof it.tomeLu === "number" && (it.tomes == null || it.tomeLu < it.tomes)) subs.push(`<span class="arret">Prochain : tome ${Math.floor(it.tomeLu) + 1}</span>`);
   if (typeof it.rating === "number") subs.push(`${it.rating}/10`);
+  if (it.auteur) subs.push(esc(it.auteur));
   if (it.genres) subs.push(esc(it.genres));
   if (it.lu && it.dateLu) subs.push((it.status === "pause" ? "Arrêté le " : "Fini le ") + fmtDate(it.dateLu));
   const cv = coverOf(it);
@@ -564,7 +584,7 @@ function render(fromSnap) {
   if (isStats) { try { $("statsBox").innerHTML = statsHTML(); } catch (err) { $("statsBox").innerHTML = `<p class="empty">Impossible d’afficher les stats : ${esc(err && err.message)}</p>`; } $("empty").hidden = true; renderImport(); return; }
   const nq = norm(q.trim());
   const hasGenre = (it) => String(it.genres || "").split(",").map((g) => g.trim().toLowerCase()).includes(genreFilter);
-  let rows = [...items.values()].filter((it) => inTab(it, tab) && (!nq || norm(it.name).includes(nq)) && (!genreFilter || hasGenre(it)));
+  let rows = [...items.values()].filter((it) => inTab(it, tab) && (!nq || norm(it.name).includes(nq) || norm(it.auteur || "").includes(nq)) && (!genreFilter || hasGenre(it)));
   $("lusFilter").hidden = tab !== "lu";
   if (tab === "lu") {
     const isRated = (it) => typeof it.rating === "number";
@@ -577,6 +597,7 @@ function render(fromSnap) {
   else if (sort === "note") rows.sort((a, b) => ((typeof b.rating === "number" ? b.rating : -1) - (typeof a.rating === "number" ? a.rating : -1)) || byName(a, b));
   else if (sort === "recent") rows.sort((a, b) => String(b.dateLu || "").localeCompare(String(a.dateLu || "")) || byName(a, b));
   else if (sort === "retard") rows.sort((a, b) => ((b.avail || 0) - (a.avail || 0)) || byName(a, b));
+  else if (sort === "auteur") rows.sort((a, b) => { const x = String(a.auteur || "").trim(), y = String(b.auteur || "").trim(); if (!x !== !y) return x ? -1 : 1; return x.localeCompare(y, "fr", { sensitivity: "base" }) || byName(a, b); });
   else rows.sort(byName);
   if (tab === "lu") {
     const fin = rows.filter((it) => it.status !== "pause"), arr = rows.filter((it) => it.status === "pause");
@@ -709,6 +730,13 @@ function onField(e, now) {
   const f = e.target.dataset && e.target.dataset.f; if (!f) return;
   const id = e.target.closest(".editor").dataset.id;
   let v;
+  if (f === "name") {
+    if (!now) return;
+    const nv = e.target.value.trim(), cur = items.get(id);
+    if (!nv) { e.target.value = cur ? cur.name : ""; return; }
+    if (cur && cur.name === nv) return;
+    save(id, { name: nv }, true); render(); return;
+  }
   if (f === "cat") {
     const cur = items.get(id), c = e.target.value;
     let patch;
@@ -727,7 +755,7 @@ function onField(e, now) {
   if (now) render();
 }
 $("list").addEventListener("input", (e) => { if (e.target.type !== "checkbox" && e.target.tagName !== "SELECT") onField(e, false); });
-$("list").addEventListener("change", (e) => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") onField(e, true); });
+$("list").addEventListener("change", (e) => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT" || (e.target.dataset && e.target.dataset.f === "name")) onField(e, true); });
 $("list").addEventListener("change", (e) => {
   const f = e.target;
   if (!f.dataset || !f.dataset.cover || !f.files || !f.files[0]) return;
